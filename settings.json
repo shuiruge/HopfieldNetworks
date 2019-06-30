@@ -1,0 +1,4 @@
+{
+    "languageServerHaskell.enableHIE": true,
+    "languageServerHaskell.hieExecutablePath": "~/.local/bin/hie",
+}
