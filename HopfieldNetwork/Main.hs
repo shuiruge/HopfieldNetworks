@@ -1,35 +1,28 @@
+import State
 import Hopfield
-import Util
+import Control.Monad.Writer
 
 learningRate :: Double
-learningRate = 0.1
+learningRate = 1
 
 memory :: [State]
-memory = fromBits <$> ["101010", "010101"]
+memory = fromBits <$> ["1010101", "010101"]
 
 hopfield :: Hopfield
 hopfield = foldl (memorize learningRate) emptyHopfield memory
 
-iter :: State -> [Index] -> State
-iter = foldl (update hopfield)
-
-iterByRandomIndices :: State -> IO State
-iterByRandomIndices state = do
-    randomIndices <- shuffle [1..(len state)]
-    return $ iter state randomIndices
-
-repeat' :: (Monad m) => Int -> (a -> m a) -> a -> m a
-repeat' n f x
-    | n == 1 = f x
+iterate :: Int -> State -> Writer [String] State
+iterate epochs state
+    | epochs == 0 = do
+        tell [show state]
+        return $ state
     | otherwise = do
-        y <- f x
-        repeat' (n - 1) f y
+        let newState = ordinalAsynUpdate hopfield state
+        tell [show newState]
+        iterate (epochs - 1) newState
 
 main :: IO ()
 main = do
-    print hopfield
-    let maxIterStep = 20
-        initState = fromBits "101010"
-    finalState <- repeat' maxIterStep iterByRandomIndices initState
-    print finalState
-    
+    let epoch = 5
+        initState = fromBits "0000000"
+    mapM_ putStrLn $ snd $ runWriter $ iter epoch initState

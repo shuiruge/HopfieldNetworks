@@ -1,63 +1,22 @@
 module Hopfield (
-  Spin
-, Index
-, LearningRate
-, State
-, fromBits
-, toBits
-, len
+  LearningRate
 , Hopfield
 , emptyHopfield
 , weight
-, update
+, asynUpdate
+, ordinalAsynUpdate
+, randomAsynUpdate
 , memorize
 ) where
 
 import qualified Data.Map.Strict as Map
-import qualified Data.Sequence as Seq
-import qualified Data.Foldable as Fold
+import Spin
+import State
+import Util (shuffle)
 
-type Spin = Double
-type Index = Int
 type LearningRate = Double
 
---- State ---
-
-newtype State = State { getSeq :: Seq.Seq Spin } deriving Eq
-
-fromList :: [Spin] -> State
-fromList = State . Seq.fromList
-
-toList :: State -> [Spin]
-toList = Fold.toList . getSeq
-
-fromBits :: String -> State
-fromBits bits = fromList $ bitToNum <$> bits
-    where bitToNum x | x == head "1" = 1.0
-                     | otherwise = -1.0
-
-toBits :: State -> String
-toBits state = concat $ numToBit <$> toList state
-    where numToBit x | x > 0 = "1"
-                     | otherwise = "0"
-
-instance Show State where
-    show state = show $ toBits state
-
-len :: State -> Int
-len = length . toList
-
-enum :: State -> [(Int, Spin)]
-enum state = zip [1, 2..] spins
-    where spins = toList state
-
-updateState :: Index -> Spin -> State -> State
-updateState i spin state = State $ Seq.update i spin (getSeq state)
-
---- Hopfield ---
-
 newtype Hopfield = Hopfield { getWeightMap :: Map.Map (Int, Int) Double }
-
 instance Show Hopfield where
     show (Hopfield weightMap) = show weightMap
 
@@ -65,32 +24,52 @@ emptyHopfield :: Hopfield
 emptyHopfield = Hopfield emptyWeightMap
     where emptyWeightMap = Map.fromList []
 
+-- $W_{ij}$ of the Hopfield network
 weight :: Hopfield -> Index -> Index -> Double
 weight hopfield i j = nothingToZero $ Map.lookup (i, j) $ getWeightMap hopfield
     where nothingToZero Nothing = 0
           nothingToZero (Just x) = x
 
-activity :: Double -> Double
-activity x
-    | x >= 0 = 1
-    | otherwise = -1
+-- The activity rule of Hopfield network
+activity :: Double -> Spin
+activity x = if x >= 0 then Up else Down
 
+-- | Auxillary function for `asynUpdate`
+-- | The update rule of Hopfield network for one index of the state
 update :: Hopfield -> State -> Index -> State
-update hopfield state i = updateState i (activity a) state
+update hopfield state i = updateState state i (activity a)
     where w = weight hopfield
-          a = sum [w i j * sj | (j, sj) <- enum state]
+          a = sum [w i j * toNum sj | (j, sj) <- toList state]
 
+-- The asynchronous update rule of Hopfield network
+asynUpdate :: Hopfield -> State -> [Index] -> State
+asynUpdate hopfield = foldl (update hopfield)
+
+-- The asynchronous update rule of Hopfield network with ordinal indices
+ordinalAsynUpdate :: Hopfield -> State -> State
+ordinalAsynUpdate hopfield state = asynUpdate hopfield state (getIndexList state)
+
+-- The asynchronous update rule of Hopfield network with random indices
+randomAsynUpdate :: Hopfield -> State -> IO State
+randomAsynUpdate hopfield state = do
+    let indexList = getIndexList state
+    randomIndexList <- shuffle indexList
+    return $ asynUpdate hopfield state randomIndexList
+
+-- Auxillary function for `memorize`
 updateWeight :: Index -> Index -> Double -> Hopfield -> Hopfield
-updateWeight i j delta hopfield = Hopfield $ Map.insert (i, j) w $ getWeightMap hopfield
-    where w = delta + weight hopfield i j
+updateWeight i j deltaW hopfield = Hopfield $ Map.insert (i, j) newW wMap 
+    where newW = deltaW + weight hopfield i j
+          wMap = getWeightMap hopfield
 
+-- Memorizes the state into the Hopfield network
 memorize :: LearningRate -> Hopfield -> State -> Hopfield
-memorize eta hopfield state = foldr update' hopfield deltaIJ
-    where update' (i, j, delta) = updateWeight i j delta
-          deltaIJ = do
-            (i, u) <- enum state
-            (j, v) <- enum state
+memorize eta hopfield state = foldr update' hopfield deltaWij
+    where update' (i, j, deltaW) = updateWeight i j deltaW
+          deltaWij = do
+            (i, u) <- toList state
+            (j, v) <- toList state
             if i == j
                 then return (i, j, 0)
             else
-                return (i, j, eta * u * v)
+                return (i, j, eta * toNum u * toNum v)
