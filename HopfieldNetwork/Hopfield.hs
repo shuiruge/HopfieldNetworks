@@ -62,14 +62,16 @@ updateWeight i j deltaW hopfield = Hopfield $ Map.insert (i, j) newW wMap
     where newW = deltaW + weight hopfield i j
           wMap = getWeightMap hopfield
 
+-- Returns the $\Delta w_{ij}$ by Hebb rule
+hebbRule :: LearningRate -> State -> [(Index, Index, Double)]
+hebbRule eta state = do
+    (i, u) <- toList state
+    (j, v) <- toList state
+    let deltaW = if i == j then 0 else eta * toNum u * toNum v
+    return (i, j, deltaW)
+
 -- Memorizes the state into the Hopfield network
 memorize :: LearningRate -> Hopfield -> State -> Hopfield
 memorize eta hopfield state = foldr update' hopfield deltaWij
     where update' (i, j, deltaW) = updateWeight i j deltaW
-          deltaWij = do
-            (i, u) <- toList state
-            (j, v) <- toList state
-            if i == j
-                then return (i, j, 0)
-            else
-                return (i, j, eta * toNum u * toNum v)
+          deltaWij = hebbRule eta state
