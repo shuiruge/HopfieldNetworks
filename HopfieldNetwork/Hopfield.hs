@@ -1,12 +1,14 @@
 module Hopfield (
   LearningRate
 , Hopfield
+, weightMap
 , emptyHopfield
 , weight
 , asynUpdate
 , ordinalAsynUpdate
 , randomAsynUpdate
 , memorize
+, reset
 ) where
 
 import qualified Data.Map.Strict as Map
@@ -15,8 +17,9 @@ import State
 import Util (shuffle)
 
 type LearningRate = Double
+type Weight = Double
 
-newtype Hopfield = Hopfield { getWeightMap :: Map.Map (Int, Int) Double }
+newtype Hopfield = Hopfield { weightMap :: Map.Map (Index, Index) Weight }
 instance Show Hopfield where
     show (Hopfield weightMap) = show weightMap
 
@@ -25,8 +28,8 @@ emptyHopfield = Hopfield emptyWeightMap
     where emptyWeightMap = Map.fromList []
 
 -- $W_{ij}$ of the Hopfield network
-weight :: Hopfield -> Index -> Index -> Double
-weight hopfield i j = nothingToZero $ Map.lookup (i, j) $ getWeightMap hopfield
+weight :: Hopfield -> Index -> Index -> Weight
+weight hopfield i j = nothingToZero $ Map.lookup (i, j) $ weightMap hopfield
     where nothingToZero Nothing = 0
           nothingToZero (Just x) = x
 
@@ -60,9 +63,9 @@ randomAsynUpdate hopfield state = do
 updateWeight :: Index -> Index -> Double -> Hopfield -> Hopfield
 updateWeight i j deltaW hopfield = Hopfield $ Map.insert (i, j) newW wMap 
     where newW = deltaW + weight hopfield i j
-          wMap = getWeightMap hopfield
+          wMap = weightMap hopfield
 
--- Returns the $\Delta w_{ij}$ by Hebb rule
+-- Returns the $\Delta W_{ij}$ by Hebb rule
 hebbRule :: LearningRate -> State -> [(Index, Index, Double)]
 hebbRule eta state = do
     (i, u) <- toList state
@@ -75,3 +78,8 @@ memorize :: LearningRate -> Hopfield -> State -> Hopfield
 memorize eta hopfield state = foldr update' hopfield deltaWij
     where update' (i, j, deltaW) = updateWeight i j deltaW
           deltaWij = hebbRule eta state
+
+-- Resets the $W_ij$ of the Hopfield network
+reset :: Index -> Index -> Weight -> Hopfield -> Hopfield
+reset i j newW hopfield = Hopfield $ Map.insert (i, j) newW wMap 
+    where wMap = weightMap hopfield
