@@ -2,7 +2,7 @@ import State
 import Hopfield
 import Control.Monad.Writer
 
-learningRate :: Double
+learningRate :: LearningRate
 learningRate = 1
 
 memory :: [State]
