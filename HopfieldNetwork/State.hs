@@ -12,9 +12,8 @@ module State (
 import qualified Data.Map as Map
 import Spin
 
-type Index = Int
-
-newtype State = State { getIndexSpinMap :: Map.Map Index Spin } deriving Eq
+newtype Index = Index [Int] deriving (Show, Ord, Eq)
+newtype State = State { indexSpinMap :: Map.Map Index Spin } deriving Eq
 
 fromList :: [(Index, Spin)] -> State
 fromList = State . Map.fromList
@@ -23,25 +22,24 @@ fromList = State . Map.fromList
 fromBits :: String -> State
 fromBits bits = fromList $ map fromBit' (enumerate bits)
     where fromBit' (index, bit) = (index, fromBit bit)
-          enumerate = zip [0, 1..]
+          enumerate = zip [Index [i] | i <- [0, 1..]]
 
 toList :: State -> [(Index, Spin)]
-toList = Map.toList . getIndexSpinMap
+toList = Map.toList . indexSpinMap
 
 getIndexList :: State -> [Index]
-getIndexList = Map.keys . getIndexSpinMap
+getIndexList = Map.keys . indexSpinMap
 
 getSpin :: State -> Index -> Maybe Spin
-getSpin state index = Map.lookup index (getIndexSpinMap state)
+getSpin state index = Map.lookup index (indexSpinMap state)
 
 instance Show State where
-    show state = concat $ showMaybeSpin . getSpin state <$> suppliedIndexList
+    show state = concat $ showMaybeSpin . getSpin state <$> indexList
         where indexList = getIndexList state
-              suppliedIndexList = [(head indexList)..(last indexList)]
               showMaybeSpin Nothing = "X"
               showMaybeSpin (Just spin) = show spin
 
 -- | Updates the state by replacing the spin at the index
 -- | If the state has no value at the index, insert the value onto the index
 updateState :: State -> Index -> Spin -> State
-updateState state i spin = State $ Map.insert i spin (getIndexSpinMap state)
+updateState state i spin = State $ Map.insert i spin (indexSpinMap state)
