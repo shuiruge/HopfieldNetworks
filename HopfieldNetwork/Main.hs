@@ -8,8 +8,11 @@ learningRate = 1
 memory :: [State]
 memory = fromBits <$> ["1010101", "010101"]
 
+learningRule :: LearningRule
+learningRule = ojaRule
+
 hopfield :: Hopfield
-hopfield = foldl (memorize learningRate) emptyHopfield memory
+hopfield = foldl (memorize learningRule learningRate) emptyHopfield memory
 
 iterate' :: Int -> State -> Writer [String] State
 iterate' epochs state

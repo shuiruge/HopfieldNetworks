@@ -4,6 +4,9 @@ module Hopfield (
 , weightMap
 , emptyHopfield
 , weight
+, LearningRule
+, hebbRule
+, ojaRule
 , asynUpdate
 , ordinalAsynUpdate
 , randomAsynUpdate
@@ -65,19 +68,38 @@ updateWeight i j deltaW hopfield = Hopfield $ Map.insert (i, j) newW wMap
     where newW = deltaW + weight hopfield i j
           wMap = weightMap hopfield
 
--- Returns the $\Delta W_{ij}$ by Hebb rule
-hebbRule :: LearningRate -> State -> [(Index, Index, Double)]
-hebbRule eta state = do
-    (i, u) <- toList state
-    (j, v) <- toList state
-    let deltaW = if i == j then 0 else eta * toNum u * toNum v
-    return (i, j, deltaW)
+-- The $dW_{ij} / dt$ in plasticity learning
+type LearningRule = Hopfield -> State -> [(Index, Index, Double)]
+
+hebbRule :: LearningRule
+hebbRule _ state = do
+    (i, u') <- toList state
+    (j, v') <- toList state
+    let u = toNum u'
+        v = toNum v'
+        dW | i == j = 0
+           | otherwise = u * v
+    return (i, j, dW)
+
+-- | Notice that the Oja's rule herein is symmetric, unlike the Oja's rule
+-- | represented otherwhere on the net
+-- | TODO: Add the proof of boundness of the weight by this Oja's rule
+ojaRule :: LearningRule
+ojaRule hopfield state = do
+    (i, u') <- toList state
+    (j, v') <- toList state
+    let u = toNum u'
+        v = toNum v'
+        w = weight hopfield i j
+        dW | i == j = 0
+           | otherwise = u * v - 0.5 * (u**2 + v**2) * w
+    return (i, j, dW)
 
 -- Memorizes the state into the Hopfield network
-memorize :: LearningRate -> Hopfield -> State -> Hopfield
-memorize eta hopfield state = foldr update' hopfield deltaWij
-    where update' (i, j, deltaW) = updateWeight i j deltaW
-          deltaWij = hebbRule eta state
+memorize :: LearningRule -> LearningRate -> Hopfield -> State -> Hopfield
+memorize rule eta hopfield state = foldr update' hopfield dWij
+    where update' (i, j, dW) = updateWeight i j (eta * dW)
+          dWij = rule hopfield state
 
 -- Resets the $W_ij$ of the Hopfield network
 reset :: Index -> Index -> Weight -> Hopfield -> Hopfield
