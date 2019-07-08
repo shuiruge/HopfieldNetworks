@@ -12,7 +12,11 @@ module State (
 import qualified Data.Map as Map
 import Spin
 
-newtype Index = Index [Int] deriving (Show, Ord, Eq)
+newtype Index = Index [Int] deriving (Ord, Eq)
+
+instance Show Index where
+    show (Index ints) = show ints
+
 newtype State = State { indexSpinMap :: Map.Map Index Spin } deriving Eq
 
 fromList :: [(Index, Spin)] -> State

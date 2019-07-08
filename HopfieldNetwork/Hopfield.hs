@@ -23,8 +23,10 @@ type LearningRate = Double
 type Weight = Double
 
 newtype Hopfield = Hopfield { weightMap :: Map.Map (Index, Index) Weight }
+
+-- TODO: Finize the printing
 instance Show Hopfield where
-    show (Hopfield weightMap) = show weightMap
+    show hopfield = show $ weightMap hopfield
 
 emptyHopfield :: Hopfield
 emptyHopfield = Hopfield emptyWeightMap
@@ -32,7 +34,10 @@ emptyHopfield = Hopfield emptyWeightMap
 
 -- $W_{ij}$ of the Hopfield network
 weight :: Hopfield -> Index -> Index -> Weight
-weight hopfield i j = nothingToZero $ Map.lookup (i, j) $ weightMap hopfield
+weight hopfield i j
+    | i == j = 0
+    | i < j = weight hopfield j i
+    | otherwise = nothingToZero $ Map.lookup (i, j) $ weightMap hopfield 
     where nothingToZero Nothing = 0
           nothingToZero (Just x) = x
 
@@ -98,7 +103,9 @@ ojaRule hopfield state = do
 -- Memorizes the state into the Hopfield network
 memorize :: LearningRule -> LearningRate -> Hopfield -> State -> Hopfield
 memorize rule eta hopfield state = foldr update' hopfield dWij
-    where update' (i, j, dW) = updateWeight i j (eta * dW)
+    where update' (i, j, dW) hopfield'
+            | i > j = updateWeight i j (eta * dW) hopfield'
+            | otherwise = hopfield'
           dWij = rule hopfield state
 
 -- Resets the $W_ij$ of the Hopfield network

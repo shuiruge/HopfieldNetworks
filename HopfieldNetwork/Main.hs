@@ -28,4 +28,5 @@ main :: IO ()
 main = do
     let epoch = 5
         initState = fromBits "0000000"
+    print hopfield
     mapM_ putStrLn $ snd $ runWriter $ iterate' epoch initState
