@@ -9,7 +9,7 @@ memory :: [State]
 memory = fromBits <$> ["1010101", "010101"]
 
 learningRule :: LearningRule
-learningRule = ojaRule
+learningRule = ojaRule 1
 
 hopfield :: Hopfield
 hopfield = foldl (memorize learningRule learningRate) emptyHopfield memory

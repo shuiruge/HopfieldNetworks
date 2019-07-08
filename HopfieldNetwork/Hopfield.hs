@@ -15,6 +15,7 @@ module Hopfield (
 ) where
 
 import qualified Data.Map.Strict as Map
+import Index
 import Spin
 import State
 import Util (shuffle)
@@ -89,15 +90,15 @@ hebbRule _ state = do
 -- | Notice that the Oja's rule herein is symmetric, unlike the Oja's rule
 -- | represented otherwhere on the net
 -- | TODO: Add the proof of boundness of the weight by this Oja's rule
-ojaRule :: LearningRule
-ojaRule hopfield state = do
+ojaRule :: Double -> LearningRule
+ojaRule r hopfield state = do
     (i, u') <- toList state
     (j, v') <- toList state
     let u = toNum u'
         v = toNum v'
         w = weight hopfield i j
         dW | i == j = 0
-           | otherwise = u * v - 0.5 * (u**2 + v**2) * w
+           | otherwise = r**2 * u * v - 0.5 * (u**2 + v**2) * w
     return (i, j, dW)
 
 -- Memorizes the state into the Hopfield network

@@ -1,6 +1,5 @@
 module State (
-  Index
-, State
+  State
 , getSpin
 , getIndexList
 , fromList
@@ -10,12 +9,8 @@ module State (
 ) where
 
 import qualified Data.Map as Map
+import Index
 import Spin
-
-newtype Index = Index [Int] deriving (Ord, Eq)
-
-instance Show Index where
-    show (Index ints) = show ints
 
 newtype State = State { indexSpinMap :: Map.Map Index Spin } deriving Eq
 
@@ -26,7 +21,7 @@ fromList = State . Map.fromList
 fromBits :: String -> State
 fromBits bits = fromList $ map fromBit' (enumerate bits)
     where fromBit' (index, bit) = (index, fromBit bit)
-          enumerate = zip [Index [i] | i <- [0, 1..]]
+          enumerate = zip [ Index [i] | i <- [0, 1..] ]
 
 toList :: State -> [(Index, Spin)]
 toList = Map.toList . indexSpinMap
