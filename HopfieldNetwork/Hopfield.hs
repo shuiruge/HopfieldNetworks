@@ -10,8 +10,8 @@ module Hopfield (
 , asynUpdate
 , ordinalAsynUpdate
 , randomAsynUpdate
-, memorize
-, reset
+, learn
+, resetWeight
 ) where
 
 import qualified Data.Map.Strict as Map
@@ -102,14 +102,14 @@ ojaRule r hopfield state = do
     return (i, j, dW)
 
 -- Memorizes the state into the Hopfield network
-memorize :: LearningRule -> LearningRate -> Hopfield -> State -> Hopfield
-memorize rule eta hopfield state = foldr update' hopfield dWij
+learn :: LearningRule -> LearningRate -> Hopfield -> State -> Hopfield
+learn rule eta hopfield state = foldr update' hopfield dWij
     where update' (i, j, dW) hopfield'
             | i > j = updateWeight i j (eta * dW) hopfield'
             | otherwise = hopfield'
           dWij = rule hopfield state
 
 -- Resets the $W_ij$ of the Hopfield network
-reset :: Index -> Index -> Weight -> Hopfield -> Hopfield
-reset i j newW hopfield = Hopfield $ Map.insert (i, j) newW wMap 
+resetWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
+resetWeight i j newW hopfield = Hopfield $ Map.insert (i, j) newW wMap 
     where wMap = weightMap hopfield

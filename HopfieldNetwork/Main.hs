@@ -12,7 +12,7 @@ learningRule :: LearningRule
 learningRule = ojaRule 1
 
 hopfield :: Hopfield
-hopfield = foldl (memorize learningRule learningRate) emptyHopfield memory
+hopfield = foldl (learn learningRule learningRate) emptyHopfield memory
 
 iterate' :: Int -> State -> Writer [String] State
 iterate' epochs state
