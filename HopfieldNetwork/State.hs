@@ -40,5 +40,5 @@ instance Show State where
 
 -- | Updates the state by replacing the spin at the index
 -- | If the state has no value at the index, insert the value onto the index
-updateState :: State -> Index -> Spin -> State
-updateState state i spin = State $ Map.insert i spin (indexSpinMap state)
+updateState :: Index -> Spin -> State -> State
+updateState i spin state = State $ Map.insert i spin (indexSpinMap state)

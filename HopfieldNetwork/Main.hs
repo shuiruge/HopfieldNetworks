@@ -5,14 +5,17 @@ import Control.Monad.Writer
 learningRate :: LearningRate
 learningRate = 1
 
-memory :: [State]
-memory = fromBits <$> ["1010101", "010101"]
-
 learningRule :: LearningRule
 learningRule = ojaRule 1
 
+memory :: [State]
+memory = fromBits <$> ["1010101", "0101010"]
+
 hopfield :: Hopfield
-hopfield = foldl (learn learningRule learningRate) emptyHopfield memory
+hopfield = foldr (learn learningRule learningRate) initHopfield memory
+    where state = head memory
+          indexList = getIndexList state
+          initHopfield = foldr ($) emptyHopfield (initialize <$> indexList <*> indexList)
 
 iterate' :: Int -> State -> Writer [String] State
 iterate' epochs state

@@ -4,6 +4,7 @@ module Hopfield (
 , weightMap
 , emptyHopfield
 , weight
+, initialize
 , LearningRule
 , hebbRule
 , ojaRule
@@ -20,9 +21,10 @@ import Spin
 import State
 import Util (shuffle)
 
-type LearningRate = Double
-type Weight = Double
+type LearningRate = Float
+type Weight = Float
 
+-- The weight at position '(i, j)' where i <= j shall be kept absent.
 newtype Hopfield = Hopfield { weightMap :: Map.Map (Index, Index) Weight }
 
 -- TODO: Finize the printing
@@ -33,56 +35,63 @@ emptyHopfield :: Hopfield
 emptyHopfield = Hopfield emptyWeightMap
     where emptyWeightMap = Map.fromList []
 
--- $W_{ij}$ of the Hopfield network
+-- | The weight at position '(i, j)' or '(j, i)' of the Hopfield network.
+-- | If the weight is absent at the position '(i, j)' or '(j, i)',
+-- | then returns zero.
 weight :: Hopfield -> Index -> Index -> Weight
 weight hopfield i j
-    | i == j = 0
     | i < j = weight hopfield j i
-    | otherwise = nothingToZero $ Map.lookup (i, j) $ weightMap hopfield 
+    | otherwise = nothingToZero $ Map.lookup (i, j) (weightMap hopfield)
     where nothingToZero Nothing = 0
           nothingToZero (Just x) = x
 
+-- Initialize the weight at position '(i, j)'
+initialize :: Index -> Index -> Hopfield -> Hopfield
+initialize i j
+    | i <= j = id
+    | otherwise = Hopfield . Map.insert (i, j) 0 . weightMap
+
 -- The activity rule of Hopfield network
-activity :: Double -> Spin
+activity :: (Real a) => a -> Spin
 activity x = if x >= 0 then Up else Down
 
 -- | Auxillary function for `asynUpdate`
 -- | The update rule of Hopfield network for one index of the state
-update :: Hopfield -> State -> Index -> State
-update hopfield state i = updateState state i (activity a)
+update :: Hopfield -> Index -> State -> State
+update hopfield i state = updateState i (activity a) state
     where w = weight hopfield
-          a = sum [w i j * toNum sj | (j, sj) <- toList state]
+          a = sum [w i j * toReal sj | (j, sj) <- toList state]
 
 -- The asynchronous update rule of Hopfield network
-asynUpdate :: Hopfield -> State -> [Index] -> State
-asynUpdate hopfield = foldl (update hopfield)
+asynUpdate :: Hopfield -> [Index] -> State -> State
+asynUpdate hopfield indexList state = foldr (update hopfield) state indexList
 
 -- The asynchronous update rule of Hopfield network with ordinal indices
 ordinalAsynUpdate :: Hopfield -> State -> State
-ordinalAsynUpdate hopfield state = asynUpdate hopfield state (getIndexList state)
+ordinalAsynUpdate hopfield state = asynUpdate hopfield (getIndexList state) state
 
 -- The asynchronous update rule of Hopfield network with random indices
 randomAsynUpdate :: Hopfield -> State -> IO State
 randomAsynUpdate hopfield state = do
     let indexList = getIndexList state
     randomIndexList <- shuffle indexList
-    return $ asynUpdate hopfield state randomIndexList
+    return $ asynUpdate hopfield randomIndexList state
 
--- Auxillary function for `memorize`
-updateWeight :: Index -> Index -> Double -> Hopfield -> Hopfield
-updateWeight i j deltaW hopfield = Hopfield $ Map.insert (i, j) newW wMap 
-    where newW = deltaW + weight hopfield i j
-          wMap = weightMap hopfield
+-- | Auxillary function for 'learn'
+-- | Add 'deltaW' to the weight at position '(i, j)'. If the position is absent,
+-- | then returns the origin.
+updateWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
+updateWeight i j deltaW (Hopfield w) = Hopfield $ Map.adjust (+ deltaW) (i, j) w
 
 -- The $dW_{ij} / dt$ in plasticity learning
-type LearningRule = Hopfield -> State -> [(Index, Index, Double)]
+type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
 
 hebbRule :: LearningRule
 hebbRule _ state = do
     (i, u') <- toList state
     (j, v') <- toList state
-    let u = toNum u'
-        v = toNum v'
+    let u = toReal u'
+        v = toReal v'
         dW | i == j = 0
            | otherwise = u * v
     return (i, j, dW)
@@ -90,21 +99,21 @@ hebbRule _ state = do
 -- | Notice that the Oja's rule herein is symmetric, unlike the Oja's rule
 -- | represented otherwhere on the net
 -- | TODO: Add the proof of boundness of the weight by this Oja's rule
-ojaRule :: Double -> LearningRule
+ojaRule :: Weight -> LearningRule
 ojaRule r hopfield state = do
     (i, u') <- toList state
     (j, v') <- toList state
-    let u = toNum u'
-        v = toNum v'
+    let u = toReal u'
+        v = toReal v'
         w = weight hopfield i j
         dW | i == j = 0
            | otherwise = r**2 * u * v - 0.5 * (u**2 + v**2) * w
     return (i, j, dW)
 
 -- Memorizes the state into the Hopfield network
-learn :: LearningRule -> LearningRate -> Hopfield -> State -> Hopfield
-learn rule eta hopfield state = foldr update' hopfield dWij
-    where update' (i, j, dW) hopfield'
+learn :: LearningRule -> LearningRate -> State -> Hopfield -> Hopfield
+learn rule eta state hopfield = foldl update' hopfield dWij
+    where update' hopfield' (i, j, dW)
             | i > j = updateWeight i j (eta * dW) hopfield'
             | otherwise = hopfield'
           dWij = rule hopfield state
