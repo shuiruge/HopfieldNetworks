@@ -6,7 +6,7 @@ getHopfield :: LearningRule -> LearningRate -> [State] -> Hopfield
 getHopfield rule rate states = learn' states $ initialize' emptyHopfield
     where state = head states
           indexList = getIndexList state
-          initialize' hopfield' = foldr ($) hopfield' (initialize <$> indexList <*> indexList)
+          initialize' hopfield' = foldr ($) hopfield' (connect <$> indexList <*> indexList)
           learn' states' hopfield = foldr (learn rule rate) hopfield states'
 
 iterate' :: Hopfield -> Int -> State -> Writer [String] State

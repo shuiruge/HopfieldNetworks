@@ -4,7 +4,7 @@ module Hopfield (
 , weightMap
 , emptyHopfield
 , weight
-, initialize
+, connect
 , LearningRule
 , hebbRule
 , ojaRule
@@ -45,9 +45,9 @@ weight hopfield i j
     where nothingToZero Nothing = 0
           nothingToZero (Just x) = x
 
--- Initialize the weight at position '(i, j)'
-initialize :: Index -> Index -> Hopfield -> Hopfield
-initialize i j
+-- Add connection between indices 'i' and 'j' on the Hopfield network.
+connect :: Index -> Index -> Hopfield -> Hopfield
+connect i j
     | i <= j = id
     | otherwise = Hopfield . Map.insert (i, j) 0 . weightMap
 
