@@ -21,7 +21,7 @@ fromList = State . Map.fromList
 fromBits :: String -> State
 fromBits bits = fromList $ map fromBit' (enumerate bits)
     where fromBit' (index, bit) = (index, fromBit bit)
-          enumerate = zip [ Index [i] | i <- [0, 1..] ]
+          enumerate = zip [Index [i] | i <- [0, 1..]]
 
 toList :: State -> [(Index, Spin)]
 toList = Map.toList . indexSpinMap
@@ -30,7 +30,7 @@ getIndexList :: State -> [Index]
 getIndexList = Map.keys . indexSpinMap
 
 getSpin :: State -> Index -> Maybe Spin
-getSpin state index = Map.lookup index (indexSpinMap state)
+getSpin state i = Map.lookup i (indexSpinMap state)
 
 instance Show State where
     show state = concat $ showMaybeSpin . getSpin state <$> indexList

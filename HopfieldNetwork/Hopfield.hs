@@ -24,7 +24,7 @@ import Util (shuffle)
 type LearningRate = Float
 type Weight = Float
 
--- The weight at position '(i, j)' where i <= j shall be kept absent.
+-- The weight at position '(i, j)' where i >= j shall be kept absent.
 newtype Hopfield = Hopfield { weightMap :: Map.Map (Index, Index) Weight }
 
 -- TODO: Finize the printing
@@ -40,7 +40,7 @@ emptyHopfield = Hopfield emptyWeightMap
 -- | then returns zero.
 weight :: Hopfield -> Index -> Index -> Weight
 weight hopfield i j
-    | i < j = weight hopfield j i
+    | i > j = weight hopfield j i
     | otherwise = nothingToZero $ Map.lookup (i, j) (weightMap hopfield)
     where nothingToZero Nothing = 0
           nothingToZero (Just x) = x
@@ -48,7 +48,7 @@ weight hopfield i j
 -- Add connection between indices 'i' and 'j' on the Hopfield network.
 connect :: Index -> Index -> Hopfield -> Hopfield
 connect i j
-    | i <= j = id
+    | i >= j = id
     | otherwise = Hopfield . Map.insert (i, j) 0 . weightMap
 
 -- The activity rule of Hopfield network
@@ -60,7 +60,7 @@ activity x = if x >= 0 then Up else Down
 update :: Hopfield -> Index -> State -> State
 update hopfield i state = updateState i (activity a) state
     where w = weight hopfield
-          a = sum [w i j * toReal sj | (j, sj) <- toList state]
+          a = sum [w i j * toReal sj | (j, sj) <- toList state] + w Zero i
 
 -- The asynchronous update rule of Hopfield network
 asynUpdate :: Hopfield -> [Index] -> State -> State
@@ -114,7 +114,7 @@ ojaRule r hopfield state = do
 learn :: LearningRule -> LearningRate -> State -> Hopfield -> Hopfield
 learn rule eta state hopfield = foldl update' hopfield dWij
     where update' hopfield' (i, j, dW)
-            | i > j = updateWeight i j (eta * dW) hopfield'
+            | i < j = updateWeight i j (eta * dW) hopfield'
             | otherwise = hopfield'
           dWij = rule hopfield state
 

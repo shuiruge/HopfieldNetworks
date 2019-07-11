@@ -27,5 +27,6 @@ main = do
         hopfield = getHopfield rule rate memory
         epoch = 5
         initState = fromBits "0000000"
+    print memory
     print hopfield
     mapM_ putStrLn $ snd $ runWriter $ iterate' hopfield epoch initState
