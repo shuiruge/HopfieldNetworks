@@ -1,3 +1,4 @@
+import Index
 import State
 import Hopfield
 import Control.Monad.Writer
@@ -5,7 +6,7 @@ import Control.Monad.Writer
 getHopfield :: LearningRule -> LearningRate -> [State] -> Hopfield
 getHopfield rule rate states = learn' states $ initialize' emptyHopfield
     where state = head states
-          indexList = getIndexList state
+          indexList = Zero : getIndexList state
           initialize' hopfield' = foldr ($) hopfield' (connect <$> indexList <*> indexList)
           learn' states' hopfield = foldr (learn rule rate) hopfield states'
 

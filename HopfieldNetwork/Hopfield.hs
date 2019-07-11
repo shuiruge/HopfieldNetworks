@@ -88,8 +88,8 @@ type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
 
 hebbRule :: LearningRule
 hebbRule _ state = do
-    (i, u') <- toList state
-    (j, v') <- toList state
+    (i, u') <- (toList . addZero) state
+    (j, v') <- (toList . addZero) state
     let u = toReal u'
         v = toReal v'
         dW | i == j = 0
@@ -101,8 +101,8 @@ hebbRule _ state = do
 -- | TODO: Add the proof of boundness of the weight by this Oja's rule
 ojaRule :: Weight -> LearningRule
 ojaRule r hopfield state = do
-    (i, u') <- toList state
-    (j, v') <- toList state
+    (i, u') <- (toList . addZero) state
+    (j, v') <- (toList . addZero) state
     let u = toReal u'
         v = toReal v'
         w = weight hopfield i j
