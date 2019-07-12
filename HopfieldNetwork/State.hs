@@ -1,7 +1,3 @@
-{-
-The state will never contain the 'Zero' index except by the 'addZero'
--}
-
 module State
 ( State
 , getSpin
@@ -9,7 +5,6 @@ module State
 , fromList
 , toList
 , fromBits
-, addZero
 , updateState
 ) where
 
@@ -45,15 +40,6 @@ instance Show State where
               showMaybeSpin Nothing = "X"
               showMaybeSpin (Just spin) = show spin
 
--- | Add '(Zero, Up)' into the index-spin-map of the state.
--- | Note that this is the only that 'Zero' index can appear in a state.
-addZero :: State -> State
-addZero = State . Map.insert Zero Up . indexSpinMap
-
 -- | Updates the state by replacing the spin at the index.
--- | If the state has no value at the index, insert the value onto the index.
--- | Will NOT update the spin at index 'Zero'.
 updateState :: Index -> Spin -> State -> State
-updateState i spin state
-    | i == Zero = state
-    | otherwise = State $ Map.insert i spin (indexSpinMap state)
+updateState i spin state = State $ Map.adjust (\_ -> spin) i (indexSpinMap state)

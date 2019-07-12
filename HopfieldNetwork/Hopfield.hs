@@ -86,10 +86,13 @@ updateWeight i j deltaW (Hopfield w) = Hopfield $ Map.adjust (+ deltaW) (i, j) w
 -- The $dW_{ij} / dt$ in plasticity learning
 type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
 
+addZero :: [(Index, Spin)] -> [(Index, Spin)]
+addZero = (:) (Zero, Up)
+
 hebbRule :: LearningRule
 hebbRule _ state = do
-    (i, u') <- (toList . addZero) state
-    (j, v') <- (toList . addZero) state
+    (i, u') <- (addZero . toList) state
+    (j, v') <- (addZero . toList) state
     let u = toReal u'
         v = toReal v'
         dW | i == j = 0
@@ -101,8 +104,8 @@ hebbRule _ state = do
 -- | TODO: Add the proof of boundness of the weight by this Oja's rule
 ojaRule :: Weight -> LearningRule
 ojaRule r hopfield state = do
-    (i, u') <- (toList . addZero) state
-    (j, v') <- (toList . addZero) state
+    (i, u') <- (addZero . toList) state
+    (j, v') <- (addZero . toList) state
     let u = toReal u'
         v = toReal v'
         w = weight hopfield i j
