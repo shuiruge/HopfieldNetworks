@@ -13,6 +13,7 @@ module Hopfield (
 , randomAsynUpdate
 , learn
 , resetWeight
+, energy
 ) where
 
 import qualified Data.Map.Strict as Map
@@ -60,7 +61,7 @@ activity x = if x >= 0 then Up else Down
 update :: Hopfield -> Index -> State -> State
 update hopfield i state = updateState i (activity a) state
     where w = weight hopfield
-          a = sum [w i j * toReal sj | (j, sj) <- toList state] + w Zero i
+          a = sum [w i j * toFloat sj | (j, sj) <- toList state] + w Zero i
 
 -- The asynchronous update rule of Hopfield network
 asynUpdate :: Hopfield -> [Index] -> State -> State
@@ -93,8 +94,8 @@ hebbRule :: LearningRule
 hebbRule _ state = do
     (i, u') <- (addZero . toList) state
     (j, v') <- (addZero . toList) state
-    let u = toReal u'
-        v = toReal v'
+    let u = toFloat u'
+        v = toFloat v'
         dW | i == j = 0
            | otherwise = u * v
     return (i, j, dW)
@@ -106,8 +107,8 @@ ojaRule :: Weight -> LearningRule
 ojaRule r hopfield state = do
     (i, u') <- (addZero . toList) state
     (j, v') <- (addZero . toList) state
-    let u = toReal u'
-        v = toReal v'
+    let u = toFloat u'
+        v = toFloat v'
         w = weight hopfield i j
         dW | i == j = 0
            | otherwise = r**2 * u * v - 0.5 * (u**2 + v**2) * w
@@ -125,3 +126,16 @@ learn rule eta state hopfield = foldl update' hopfield dWij
 resetWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
 resetWeight i j newW hopfield = Hopfield $ Map.insert (i, j) newW wMap 
     where wMap = weightMap hopfield
+
+-- Auxillary function of 'energy'.
+toFloat' :: Maybe Spin -> Float
+toFloat' Nothing = 0
+toFloat' (Just spin) = toFloat spin
+
+energy :: Hopfield -> State -> Float
+energy hopfield state = -0.5 * part1 + part2
+    where s = toFloat' . getSpin state
+          w = weight hopfield
+          indexList = getIndexList state
+          part1 = sum $ (\i j -> s i * w i j * s j) <$> indexList <*> indexList
+          part2 = sum $ (\i -> s i * w Zero i) <$> indexList

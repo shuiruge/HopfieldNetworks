@@ -18,6 +18,7 @@ iterate' hopfield epochs state
     | otherwise = do
         let newState = ordinalAsynUpdate hopfield state
         tell [show newState]
+        tell [show $ energy hopfield newState]
         iterate' hopfield (epochs - 1) newState
 
 main :: IO ()
