@@ -51,13 +51,13 @@ weight hopfield i j
 connect :: Index -> Index -> Hopfield -> Hopfield
 connect i j
     | i >= j = id
-    | otherwise = Hopfield
-                 . Map.insert (i, j) 0
-                 . weightMap
+    | otherwise = Hopfield . Map.insert (i, j) 0 . weightMap
 
 -- The activity rule of Hopfield network
 activity :: (Real a) => a -> Spin
-activity x = if x >= 0 then Up else Down
+activity x
+    | x >= 0 = Up
+    | otherwise = Down
 
 -- | Auxillary function for `asynUpdate`
 -- | The update rule of Hopfield network for one index of the state
@@ -122,11 +122,12 @@ ojaRule r hopfield state = do
 
 -- Memorizes the state into the Hopfield network
 learn :: LearningRule -> LearningRate -> State -> Hopfield -> Hopfield
-learn rule eta state hopfield = foldr update' hopfield dWij
-    where update' (i, j, dW)
-            | i >= j = id
-            | otherwise = updateWeight i j (eta * dW)
-          dWij = rule hopfield state
+learn rule eta state hopfield =
+    let
+        update' (i, j, dW) = updateWeight i j (eta * dW)
+        dWij = rule hopfield state
+    in
+        foldr update' hopfield dWij
 
 -- Resets the $W_ij$ of the Hopfield network
 resetWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
@@ -142,11 +143,8 @@ energy hopfield state =
     let
         s = toFloat' . getSpin state
         w = weight hopfield
-        indexList = getIndexList state
-        weightPart = sum $ (\i j -> s i * w i j * s j)
-                        <$> indexList
-                        <*> indexList
-        biasPart = sum $ (\i -> s i * w Zero i)
-                      <$> indexList
+        ids = getIndexList state
+        weightPart = sum [s i * w i j * s j | i <- ids, j <- ids]
+        biasPart = sum [s i * w Zero i | i <- ids]
     in
         -0.5 * weightPart + biasPart
