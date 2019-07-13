@@ -147,4 +147,4 @@ energy hopfield state =
         weightPart = sum [s i * w i j * s j | i <- ids, j <- ids]
         biasPart = sum [s i * w Zero i | i <- ids]
     in
-        -0.5 * weightPart + biasPart
+        -(0.5 * weightPart + biasPart)

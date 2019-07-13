@@ -16,15 +16,19 @@ getHopfield rule rate states =
 
 iterate' :: Hopfield -> Int -> State -> Writer [String] State
 iterate' hopfield epochs state
-    | epochs == 0 = do
-        tell [show state]
-        return state
+    | epochs == 0 = return state
     | otherwise = do
         let
-            newState = ordinalAsynUpdate hopfield state
-        tell [show newState]
-        tell [show $ energy hopfield newState]
-        iterate' hopfield (epochs - 1) newState
+            e = energy hopfield state
+            state' = ordinalAsynUpdate hopfield state
+            e' = energy hopfield state'
+            epochs'
+                | e == e' = 0  -- stop iteration.
+                | otherwise = epochs - 1
+        tell ["State  | " ++ show state]
+        tell ["Energy | " ++ show e]
+        tell ["------ | --------"]
+        iterate' hopfield epochs' state'
 
 main :: IO ()
 main = do
@@ -36,6 +40,4 @@ main = do
         epoch = 5
         initState = fromBits "0000000"
         write = mapM_ putStrLn . snd . runWriter
-    print memory
-    print hopfield
     write $ iterate' hopfield epoch initState
