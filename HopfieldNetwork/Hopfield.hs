@@ -20,7 +20,7 @@ import qualified Data.Map.Strict as Map
 import Index
 import Spin
 import State
-import Util (shuffle)
+import Util
 
 type LearningRate = Float
 type Weight = Float
@@ -35,6 +35,11 @@ instance Show Hopfield where
 emptyHopfield :: Hopfield
 emptyHopfield = Hopfield $ Map.fromList []
 
+-- Auxillary function for 'weight'.
+nothingToZero :: Maybe Weight -> Weight
+nothingToZero Nothing = 0
+nothingToZero (Just x) = x
+
 -- | The weight at position '(i, j)' or '(j, i)' of the Hopfield network.
 -- | If the weight is absent at the position '(i, j)' or '(j, i)',
 -- | then returns zero.
@@ -44,8 +49,6 @@ weight hopfield i j
     | otherwise = nothingToZero
                 $ Map.lookup (i, j)
                 $ weightMap hopfield
-    where nothingToZero Nothing = 0
-          nothingToZero (Just x) = x
 
 -- Add connection between indices 'i' and 'j' on the Hopfield network.
 connect :: Index -> Index -> Hopfield -> Hopfield
@@ -90,6 +93,7 @@ updateWeight i j dW = Hopfield . Map.adjust (+ dW) (i, j) . weightMap
 -- The $dW_{ij} / dt$ in plasticity learning
 type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
 
+-- For introducing bias in the computation.
 addZero :: [(Index, Spin)] -> [(Index, Spin)]
 addZero = (:) (Zero, Up)
 
@@ -144,7 +148,6 @@ energy hopfield state =
         s = toFloat' . getSpin state
         w = weight hopfield
         ids = getIndexList state
-        weightPart = sum [s i * w i j * s j | i <- ids, j <- ids]
-        biasPart = sum [s i * w Zero i | i <- ids]
     in
-        -(0.5 * weightPart + biasPart)
+        - 0.5 * sum [s i * w i j * s j | i <- ids, j <- ids]
+        - sum [s i * w Zero i | i <- ids]  -- bias part
