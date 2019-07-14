@@ -20,11 +20,11 @@ fromList = State . Map.fromList . filter (\(index, _) -> index /= Zero)
 -- | With index starting at one.
 fromBits :: String -> State
 fromBits bits =
-    let
-        fromBit' (index, bit) = (index, fromBit bit)
-        enumerate = zip [Index [i] | i <- [1..]]
-    in
-        fromList $ map fromBit' (enumerate bits)
+  let
+    fromBit' (index, bit) = (index, fromBit bit)
+    enumerate = zip [Index [i] | i <- [1..]]
+  in
+    fromList $ map fromBit' (enumerate bits)
 
 toList :: State -> [(Index, Spin)]
 toList = Map.toList . indexSpinMap
@@ -39,7 +39,7 @@ getSpin :: State -> Index -> Maybe Spin
 getSpin state i = Map.lookup i (indexSpinMap state)
 
 instance Show State where
-    show = concatMap show . getSpinList
+  show = concatMap show . getSpinList
 
 -- | Updates the state by replacing the spin at the index.
 updateState :: Index -> Spin -> State -> State

@@ -6,8 +6,8 @@ module Spin (
 
 data Spin = Up | Down deriving Eq
 instance Show Spin where
-    show Up = "1"
-    show Down = "0"
+  show Up = "1"
+  show Down = "0"
 
 toFloat :: Spin -> Float
 toFloat Up = 1

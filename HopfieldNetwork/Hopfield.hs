@@ -30,7 +30,7 @@ newtype Hopfield = Hopfield { weightMap :: Map.Map (Index, Index) Weight }
 
 -- TODO: Finize the printing
 instance Show Hopfield where
-    show hopfield = show $ weightMap hopfield
+  show hopfield = show $ weightMap hopfield
 
 emptyHopfield :: Hopfield
 emptyHopfield = Hopfield $ Map.fromList []
@@ -45,30 +45,33 @@ nothingToZero (Just x) = x
 -- | then returns zero.
 weight :: Hopfield -> Index -> Index -> Weight
 weight hopfield i j
-    | i > j = weight hopfield j i
-    | otherwise = nothingToZero
-                $ Map.lookup (i, j)
-                $ weightMap hopfield
+  | i > j = weight hopfield j i
+  | otherwise = nothingToZero
+              $ Map.lookup (i, j)
+              $ weightMap hopfield
 
 -- Add connection between indices 'i' and 'j' on the Hopfield network.
 connect :: Index -> Index -> Hopfield -> Hopfield
 connect i j
-    | i >= j = id
-    | otherwise = Hopfield . Map.insert (i, j) 0 . weightMap
+  | i >= j = id
+  | otherwise = Hopfield . Map.insert (i, j) 0 . weightMap
 
 -- The activity rule of Hopfield network
 activity :: (Real a) => a -> Spin
 activity x
-    | x >= 0 = Up
-    | otherwise = Down
+  | x >= 0 = Up
+  | otherwise = Down
 
 -- | Auxillary function for `asynUpdate`
 -- | The update rule of Hopfield network for one index of the state
 update :: Hopfield -> Index -> State -> State
-update hopfield i state = updateState i (activity a) state
-    where w = weight hopfield
-          a = sum [w i j * toFloat sj | (j, sj) <- toList state]
-            + w Zero i
+update hopfield i state = 
+  let
+    w = weight hopfield
+    a = sum [w i j * toFloat sj | (j, sj) <- toList state]
+      + w Zero i
+  in
+    updateState i (activity a) state
 
 -- The asynchronous update rule of Hopfield network
 asynUpdate :: Hopfield -> [Index] -> State -> State
@@ -81,8 +84,8 @@ ordinalAsynUpdate hopfield state = asynUpdate hopfield (getIndexList state) stat
 -- The asynchronous update rule of Hopfield network with random indices
 randomAsynUpdate :: Hopfield -> State -> IO State
 randomAsynUpdate hopfield state = do
-    randomIndexList <- shuffle $ getIndexList state
-    return $ asynUpdate hopfield randomIndexList state
+  randomIndexList <- shuffle $ getIndexList state
+  return $ asynUpdate hopfield randomIndexList state
 
 -- | Auxillary function for 'learn'
 -- | Add 'deltaW' to the weight at position '(i, j)'. If the position is absent,
@@ -103,14 +106,15 @@ type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
 -}
 hebbRule :: LearningRule
 hebbRule _ state = do
-    (i, u') <- (addZero . toList) state
-    (j, v') <- (addZero . toList) state
-    let
-        u = toFloat u'
-        v = toFloat v'
-        dW | i == j = 0
-           | otherwise = u * v
-    return (i, j, dW)
+  (i, u') <- (addZero . toList) state
+  (j, v') <- (addZero . toList) state
+  let
+    u = toFloat u'
+    v = toFloat v'
+    dW
+      | i == j = 0
+      | otherwise = u * v
+  return (i, j, dW)
 
 {-
   Notice that the Oja's rule herein is symmetric, unlike the Oja's rule
@@ -120,25 +124,25 @@ hebbRule _ state = do
 -}
 ojaRule :: Weight -> LearningRule
 ojaRule r hopfield state = do
-    (i, u') <- (addZero . toList) state
-    (j, v') <- (addZero . toList) state
-    let
-        u = toFloat u'
-        v = toFloat v'
-        w = weight hopfield i j
-        dW | i == j = 0
-           | otherwise = r**2 * u * v
-                       - 0.5 * (u**2 + v**2) * w
-    return (i, j, dW)
+  (i, u') <- (addZero . toList) state
+  (j, v') <- (addZero . toList) state
+  let
+    u = toFloat u'
+    v = toFloat v'
+    w = weight hopfield i j
+    dW
+      | i == j = 0
+      | otherwise = r**2 * u * v - 0.5 * (u**2 + v**2) * w
+  return (i, j, dW)
 
 -- Memorizes the state into the Hopfield network
 learn :: LearningRule -> LearningRate -> State -> Hopfield -> Hopfield
 learn rule eta state hopfield =
-    let
-        update' (i, j, dW) = updateWeight i j (eta * dW)
-        dWij = rule hopfield state
-    in
-        foldr update' hopfield dWij
+  let
+    update' (i, j, dW) = updateWeight i j (eta * dW)
+    dWij = rule hopfield state
+  in
+    foldr update' hopfield dWij
 
 -- Resets the $W_ij$ of the Hopfield network
 resetWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
@@ -151,10 +155,10 @@ toFloat' (Just spin) = toFloat spin
 
 energy :: Hopfield -> State -> Float
 energy hopfield state =
-    let
-        s = toFloat' . getSpin state
-        w = weight hopfield
-        ids = getIndexList state
-    in
-        - 0.5 * sum [s i * w i j * s j | i <- ids, j <- ids]
-        - sum [s i * w Zero i | i <- ids]  -- bias part
+  let
+    s = toFloat' . getSpin state
+    w = weight hopfield
+    ids = getIndexList state
+  in
+    - 0.5 * sum [s i * w i j * s j | i <- ids, j <- ids]
+    - sum [s i * w Zero i | i <- ids]  -- bias part

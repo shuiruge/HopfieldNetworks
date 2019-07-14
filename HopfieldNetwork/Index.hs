@@ -6,11 +6,11 @@ module Index
 data Index = Zero | Index { components :: [Int] } deriving Eq
 
 instance Show Index where
-    show Zero = "Zero"
-    show (Index comp) = show comp
+  show Zero = "Zero"
+  show (Index comp) = show comp
 
 instance Ord Index where
-    compare Zero Zero = EQ
-    compare Zero (Index _) = LT
-    compare (Index _) Zero = GT
-    compare (Index comp0) (Index comp1) = compare comp0 comp1
+  compare Zero Zero = EQ
+  compare Zero (Index _) = LT
+  compare (Index _) Zero = GT
+  compare (Index comp0) (Index comp1) = compare comp0 comp1
