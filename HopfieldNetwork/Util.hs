@@ -10,7 +10,7 @@ import Control.Monad
 --   /O(N)/
 shuffle :: [a] -> IO [a]
 shuffle xs = do
-  ar <- newArray n xs
+  ar <- newArray' n xs
   forM [1..n] $ \i -> do
     j <- randomRIO (i,n)
     vi <- readArray ar i
@@ -19,5 +19,5 @@ shuffle xs = do
     return vj
   where
     n = length xs
-    newArray :: Int -> [a] -> IO (IOArray Int a)
-    newArray n xs =  newListArray (1,n) xs
+    newArray' :: Int -> [a] -> IO (IOArray Int a)
+    newArray' m =  newListArray (1, m)
