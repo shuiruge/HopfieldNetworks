@@ -1,1 +1,1 @@
-# LearnHaskell
+# HopfieldNetworks
