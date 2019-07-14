@@ -90,13 +90,17 @@ randomAsynUpdate hopfield state = do
 updateWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
 updateWeight i j dW = Hopfield . Map.adjust (+ dW) (i, j) . weightMap
 
--- The $dW_{ij} / dt$ in plasticity learning
-type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
-
 -- For introducing bias in the computation.
 addZero :: [(Index, Spin)] -> [(Index, Spin)]
 addZero = (:) (Zero, Up)
 
+-- The $dW_{ij} / dt$ in plasticity learning
+type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
+
+{-
+  The proof that the hebb rule makes the reference states the memeory of
+  the network can be found in Mackay's book, section 42.7.
+-}
 hebbRule :: LearningRule
 hebbRule _ state = do
     (i, u') <- (addZero . toList) state
@@ -108,9 +112,12 @@ hebbRule _ state = do
            | otherwise = u * v
     return (i, j, dW)
 
--- | Notice that the Oja's rule herein is symmetric, unlike the Oja's rule
--- | represented otherwhere on the net
--- | TODO: Add the proof of boundness of the weight by this Oja's rule
+{-
+  Notice that the Oja's rule herein is symmetric, unlike the Oja's rule
+  represented otherwhere on the net
+  TODO: Add the proof of boundness of the weight by this Oja's rule
+  It seems that the ojaRule cannot gives the correct result.
+-}
 ojaRule :: Weight -> LearningRule
 ojaRule r hopfield state = do
     (i, u') <- (addZero . toList) state
