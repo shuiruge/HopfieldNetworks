@@ -12,7 +12,7 @@ module Hopfield (
 , ordinalAsynUpdate
 , randomAsynUpdate
 , learn
-, resetWeight
+, setWeight
 , energy
 ) where
 
@@ -144,9 +144,10 @@ learn rule eta state hopfield =
   in
     foldr update' hopfield dWij
 
--- Resets the $W_ij$ of the Hopfield network
-resetWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
-resetWeight i j newW = Hopfield . Map.adjust (const newW) (i, j) . weightMap
+-- | Manually set the $W_ij$ of the Hopfield network
+-- | If the weight at position '(i, j)' does not exist, then returns the origin.
+setWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
+setWeight i j w = Hopfield . Map.adjust (const w) (i, j) . weightMap
 
 -- Auxillary function of 'energy'.
 toFloat' :: Maybe Spin -> Float
