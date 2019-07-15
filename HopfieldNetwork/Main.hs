@@ -42,6 +42,6 @@ main = do
               , "1001001001001" ]
     hopfield = getHopfield rule rate memory
     epoch = 5
-    initState = fromBits "1001001001001"
+    initState = fromBits "1001001001101"
     write = mapM_ putStrLn . snd . runWriter
   write $ iterate' hopfield epoch initState

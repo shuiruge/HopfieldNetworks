@@ -11,6 +11,7 @@ module Hopfield (
 , asynUpdate
 , ordinalAsynUpdate
 , randomAsynUpdate
+, iter
 , learn
 , setWeight
 , energy
@@ -69,7 +70,6 @@ update hopfield i state =
   let
     w = weight hopfield
     a = sum [w i j * toFloat sj | (j, sj) <- toList state]
-      + w Zero i
   in
     updateState i (activity a) state
 
@@ -87,15 +87,25 @@ randomAsynUpdate hopfield state = do
   randomIndexList <- shuffle $ getIndexList state
   return $ asynUpdate hopfield randomIndexList state
 
+-- Iterates the state by the Hopfield network and ordinal update until stable.
+iter :: Hopfield -> Int -> State -> State
+iter hopfield maxStep state =
+  if maxStep == 0
+    then state
+  else
+    let
+      nextState = ordinalAsynUpdate hopfield state
+    in
+      if nextState == state -- stop iteration
+        then state
+      else
+        iter hopfield (maxStep - 1) nextState
+
 -- | Auxillary function for 'learn'
 -- | Add 'deltaW' to the weight at position '(i, j)'. If the position is absent,
 -- | then returns the origin.
 updateWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
 updateWeight i j dW = Hopfield . Map.adjust (+ dW) (i, j) . weightMap
-
--- For introducing bias in the computation.
-addZero :: [(Index, Spin)] -> [(Index, Spin)]
-addZero = (:) (Zero, Up)
 
 -- The $dW_{ij} / dt$ in plasticity learning
 type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
@@ -106,8 +116,8 @@ type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
 -}
 hebbRule :: LearningRule
 hebbRule _ state = do
-  (i, u') <- (addZero . toList) state
-  (j, v') <- (addZero . toList) state
+  (i, u') <- toList state
+  (j, v') <- toList state
   let
     u = toFloat u'
     v = toFloat v'
@@ -124,8 +134,8 @@ hebbRule _ state = do
 -}
 ojaRule :: Weight -> LearningRule
 ojaRule r hopfield state = do
-  (i, u') <- (addZero . toList) state
-  (j, v') <- (addZero . toList) state
+  (i, u') <- toList state
+  (j, v') <- toList state
   let
     u = toFloat u'
     v = toFloat v'
@@ -162,4 +172,3 @@ energy hopfield state =
     ids = getIndexList state
   in
     - 0.5 * sum [s i * w i j * s j | i <- ids, j <- ids]
-    - sum [s i * w Zero i | i <- ids]  -- bias part
