@@ -23,7 +23,8 @@ import Spin
 import State
 import Util
 
-type LearningRate = Float
+------------ Constuction --------------
+
 type Weight = Float
 
 -- The weight at position '(i, j)' where i >= j shall be kept absent.
@@ -56,6 +57,28 @@ connect :: Index -> Index -> Hopfield -> Hopfield
 connect i j
   | i >= j = id
   | otherwise = Hopfield . Map.insert (i, j) 0 . weightMap
+
+-- | Manually set the $W_ij$ of the Hopfield network
+-- | If the weight at position '(i, j)' does not exist, then returns the origin.
+setWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
+setWeight i j w = Hopfield . Map.adjust (const w) (i, j) . weightMap
+
+-- Auxillary function of 'energy'.
+toFloat' :: Maybe Spin -> Float
+toFloat' Nothing = 0
+toFloat' (Just spin) = toFloat spin
+
+energy :: Hopfield -> State -> Float
+energy hopfield state =
+  let
+    s = toFloat' . getSpin state
+    w = weight hopfield
+    ids = getIndexList state
+  in
+    - 0.5 * sum [s i * w i j * s j | i <- ids, j <- ids]
+
+
+------------ Update State --------------
 
 -- The activity rule of Hopfield network
 activity :: (Real a) => a -> Spin
@@ -101,6 +124,9 @@ iter hopfield maxStep state =
       else
         iter hopfield (maxStep - 1) nextState
 
+
+------------ Learning --------------
+
 -- | Auxillary function for 'learn'
 -- | Add 'deltaW' to the weight at position '(i, j)'. If the position is absent,
 -- | then returns the origin.
@@ -145,6 +171,8 @@ ojaRule r hopfield state = do
       | otherwise = r**2 * u * v - 0.5 * (u**2 + v**2) * w
   return (i, j, dW)
 
+type LearningRate = Float
+
 -- Memorizes the state into the Hopfield network
 learn :: LearningRule -> LearningRate -> State -> Hopfield -> Hopfield
 learn rule eta state hopfield =
@@ -153,22 +181,3 @@ learn rule eta state hopfield =
     dWij = rule hopfield state
   in
     foldr update' hopfield dWij
-
--- | Manually set the $W_ij$ of the Hopfield network
--- | If the weight at position '(i, j)' does not exist, then returns the origin.
-setWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
-setWeight i j w = Hopfield . Map.adjust (const w) (i, j) . weightMap
-
--- Auxillary function of 'energy'.
-toFloat' :: Maybe Spin -> Float
-toFloat' Nothing = 0
-toFloat' (Just spin) = toFloat spin
-
-energy :: Hopfield -> State -> Float
-energy hopfield state =
-  let
-    s = toFloat' . getSpin state
-    w = weight hopfield
-    ids = getIndexList state
-  in
-    - 0.5 * sum [s i * w i j * s j | i <- ids, j <- ids]
