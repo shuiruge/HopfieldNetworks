@@ -130,11 +130,22 @@ hebbRule _ state = do
   return (i, j, dW)
 
 {-
-  Notice that the Oja's rule herein is symmetric, unlike the Oja's rule
-  represented otherwhere on the net.
-  TODO: Add the proof of boundness of the weight by this Oja's rule.
+  Oja's rule herein is
+
+    $$ \frac{ dw_{ij} }{ dt } = R^2 x_i x_j - w_ij, $$
+
+  wherein the $R$ and $t$ both have dimension $1$, $x$ has $L$, and $w$ has $L^2$.
+
+  Notice that the Oja's rule herein is symmetric, and having correct dimension,
+  unlike the Oja's rule represented otherwhere on the net.
+
   It seems that the ojaRule cannot gives the correct result if the learning
   rate is large (say 1), even for a large epochs of learning.
+
+  TODO:
+    1. Add the proof of boundness of the weight by this Oja's rule.
+    2. Add the proof that the updating of state does converge to the reference
+       state learned by Oja's rule.
 -}
 ojaRule :: Weight -> LearningRule
 ojaRule r hopfield state = do
@@ -146,7 +157,7 @@ ojaRule r hopfield state = do
     w = weight hopfield i j
     dW
       | i == j = 0
-      | otherwise = r**2 * u * v - 0.5 * (u**2 + v**2) * w
+      | otherwise = r**2 * u * v - w
   return (i, j, dW)
 
 type LearningRate = Float

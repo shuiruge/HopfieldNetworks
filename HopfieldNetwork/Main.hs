@@ -58,7 +58,8 @@ main = do
     epochs = 10
     (hopfield, learnLog) = runWriter $ getHopfield rule rate epochs memory
     maxStep = 5
-    initState = fromBits "1001001011111"
+    -- initState = fromBits "1001001011111"
+    initState = fromBits "1010101010111"
 
   putStrLn "\nLearning Process......\n"
   mapM_ putStrLn learnLog
