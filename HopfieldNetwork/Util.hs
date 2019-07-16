@@ -1,5 +1,6 @@
-module Util (
-  shuffle
+module Util
+( shuffle
+, duplicate
 ) where
 
 import System.Random
@@ -21,3 +22,7 @@ shuffle xs = do
     n = length xs
     newArray' :: Int -> [a] -> IO (IOArray Int a)
     newArray' m =  newListArray (1, m)
+
+-- Makes, say, [1, 2] to [1, 2, 1, 2, 1, 2] if 'n' is 3.
+duplicate :: Int -> [a] -> [a]
+duplicate n xs = foldr (++) [] $ take n (repeat xs)

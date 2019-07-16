@@ -5,23 +5,19 @@ module Hopfield (
 , emptyHopfield
 , weight
 , connect
+, setWeight
+, energy
+, asynUpdate
 , LearningRule
 , hebbRule
 , ojaRule
-, asynUpdate
-, ordinalAsynUpdate
-, randomAsynUpdate
-, iter
 , learn
-, setWeight
-, energy
 ) where
 
 import qualified Data.Map.Strict as Map
 import Index
 import Spin
 import State
-import Util
 
 ------------ Constuction --------------
 
@@ -100,30 +96,6 @@ update hopfield i state =
 asynUpdate :: Hopfield -> [Index] -> State -> State
 asynUpdate hopfield indexList state = foldr (update hopfield) state indexList
 
--- The asynchronous update rule of Hopfield network with ordinal indices
-ordinalAsynUpdate :: Hopfield -> State -> State
-ordinalAsynUpdate hopfield state = asynUpdate hopfield (getIndexList state) state
-
--- The asynchronous update rule of Hopfield network with random indices
-randomAsynUpdate :: Hopfield -> State -> IO State
-randomAsynUpdate hopfield state = do
-  randomIndexList <- shuffle $ getIndexList state
-  return $ asynUpdate hopfield randomIndexList state
-
--- Iterates the state by the Hopfield network and ordinal update until stable.
-iter :: Hopfield -> Int -> State -> State
-iter hopfield maxStep state =
-  if maxStep == 0
-    then state
-  else
-    let
-      nextState = ordinalAsynUpdate hopfield state
-    in
-      if nextState == state -- stop iteration
-        then state
-      else
-        iter hopfield (maxStep - 1) nextState
-
 
 ------------ Learning --------------
 
@@ -154,9 +126,10 @@ hebbRule _ state = do
 
 {-
   Notice that the Oja's rule herein is symmetric, unlike the Oja's rule
-  represented otherwhere on the net
-  TODO: Add the proof of boundness of the weight by this Oja's rule
-  It seems that the ojaRule cannot gives the correct result.
+  represented otherwhere on the net.
+  TODO: Add the proof of boundness of the weight by this Oja's rule.
+  It seems that the ojaRule cannot gives the correct result if the learning
+  rate is large (say 1), even for a large epochs of learning.
 -}
 ojaRule :: Weight -> LearningRule
 ojaRule r hopfield state = do
