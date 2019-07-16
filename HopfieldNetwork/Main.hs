@@ -1,8 +1,8 @@
-import Index
 import State
 import Hopfield
 import Control.Monad.Writer
 import Util
+
 
 getHopfield :: LearningRule -> LearningRate -> Int -> [State] -> Writer [String] Hopfield
 getHopfield rule rate epochs states =
@@ -13,20 +13,20 @@ getHopfield rule rate epochs states =
                                   (connect <$> indexList <*> indexList)
     
     learn' :: Hopfield -> [State] -> Writer [String] Hopfield
+    learn' hopfield [] = return hopfield
     learn' hopfield (st:sts) = do
       let
         norm = weightNorm 2 hopfield
         newHopfield = learn rule rate st hopfield
       tell ["Norm of weight: " ++ show norm]
-      if sts == []
-        then return $ newHopfield
-      else
-          learn' newHopfield sts
+      learn' newHopfield sts
   in
     learn' (initialize' emptyHopfield) (duplicate epochs states)
 
+
 ordinalAsynUpdate :: Hopfield -> State -> State
 ordinalAsynUpdate hopfield state = asynUpdate hopfield (getIndexList state) state
+
 
 iterate' :: Hopfield -> Int -> State -> Writer [String] State
 iterate' hopfield maxStep state
@@ -44,6 +44,7 @@ iterate' hopfield maxStep state
     tell ["------ | --------"]
     iterate' hopfield maxStep' state'
 
+
 main :: IO ()
 main = do
   let
@@ -58,7 +59,9 @@ main = do
     (hopfield, learnLog) = runWriter $ getHopfield rule rate epochs memory
     maxStep = 5
     initState = fromBits "1001001011111"
+
   putStrLn "\nLearning Process......\n"
   mapM_ putStrLn learnLog
+
   putStrLn "\nUpdating Process......\n"
   mapM_ putStrLn . snd . runWriter $ iterate' hopfield maxStep initState
