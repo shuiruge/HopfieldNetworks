@@ -65,10 +65,10 @@ setWeight i j w = Hopfield . Map.adjust (const w) (i, j) . weightMap
 weightNorm :: Weight -> Hopfield -> Weight
 weightNorm p hopfield =
   let
-    norm :: Weight -> [Float] -> Float
-    norm p xs = (sum $ map (**p) xs) ** (1/p)
+    norm :: [Float] -> Float
+    norm xs = sum (map (**p) xs) ** (1/p)
   in 
-    norm p [v | (k, v) <- (Map.toList . weightMap) hopfield]
+    norm [v | (_, v) <- (Map.toList . weightMap) hopfield]
 
 energy :: Hopfield -> State -> Float
 energy hopfield state =
