@@ -6,6 +6,7 @@ module Hopfield (
 , weight
 , connect
 , setWeight
+, weightNorm
 , energy
 , asynUpdate
 , LearningRule
@@ -33,20 +34,21 @@ instance Show Hopfield where
 emptyHopfield :: Hopfield
 emptyHopfield = Hopfield $ Map.fromList []
 
--- Auxillary function for 'weight'.
-nothingToZero :: Maybe Weight -> Weight
-nothingToZero Nothing = 0
-nothingToZero (Just x) = x
-
 -- | The weight at position '(i, j)' or '(j, i)' of the Hopfield network.
 -- | If the weight is absent at the position '(i, j)' or '(j, i)',
 -- | then returns zero.
 weight :: Hopfield -> Index -> Index -> Weight
-weight hopfield i j
-  | i > j = weight hopfield j i
-  | otherwise = nothingToZero
-              $ Map.lookup (i, j)
-              $ weightMap hopfield
+weight hopfield i j =
+  let
+    nothingToZero :: Maybe Weight -> Weight
+    nothingToZero Nothing = 0
+    nothingToZero (Just x) = x
+  in
+    if i > j
+      then weight hopfield j i
+    else
+      nothingToZero $ Map.lookup (i, j)
+                    $ weightMap hopfield
 
 -- Add connection between indices 'i' and 'j' on the Hopfield network.
 connect :: Index -> Index -> Hopfield -> Hopfield
@@ -59,14 +61,22 @@ connect i j
 setWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
 setWeight i j w = Hopfield . Map.adjust (const w) (i, j) . weightMap
 
--- Auxillary function of 'energy'.
-toFloat' :: Maybe Spin -> Float
-toFloat' Nothing = 0
-toFloat' (Just spin) = toFloat spin
+-- The p-norm of the weight-matrix of the Hopfield network.
+weightNorm :: Weight -> Hopfield -> Weight
+weightNorm p hopfield =
+  let
+    norm :: Weight -> [Float] -> Float
+    norm p xs = (sum $ map (**p) xs) ** (1/p)
+  in 
+    norm p [v | (k, v) <- (Map.toList . weightMap) hopfield]
 
 energy :: Hopfield -> State -> Float
 energy hopfield state =
   let
+    toFloat' :: Maybe Spin -> Float
+    toFloat' Nothing = 0
+    toFloat' (Just spin) = toFloat spin
+
     s = toFloat' . getSpin state
     w = weight hopfield
     ids = getIndexList state
@@ -82,28 +92,23 @@ activity x
   | x >= 0 = Up
   | otherwise = Down
 
--- | Auxillary function for `asynUpdate`
--- | The update rule of Hopfield network for one index of the state
-update :: Hopfield -> Index -> State -> State
-update hopfield i state = 
-  let
-    w = weight hopfield
-    a = sum [w i j * toFloat sj | (j, sj) <- toList state]
-  in
-    updateState i (activity a) state
-
 -- The asynchronous update rule of Hopfield network
 asynUpdate :: Hopfield -> [Index] -> State -> State
-asynUpdate hopfield indexList state = foldr (update hopfield) state indexList
+asynUpdate hopfield indexList state =
+  let
+    -- The update rule of Hopfield network for one index of the state
+    update :: Hopfield -> Index -> State -> State
+    update h i s = 
+      let
+        w = weight h
+        a = sum [w i j * toFloat sj | (j, sj) <- toList s]
+      in
+        updateState i (activity a) s
+  in
+    foldr (update hopfield) state indexList
 
 
 ------------ Learning --------------
-
--- | Auxillary function for 'learn'
--- | Add 'deltaW' to the weight at position '(i, j)'. If the position is absent,
--- | then returns the origin.
-updateWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
-updateWeight i j dW = Hopfield . Map.adjust (+ dW) (i, j) . weightMap
 
 -- The $dW_{ij} / dt$ in plasticity learning
 type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
@@ -150,6 +155,11 @@ type LearningRate = Float
 learn :: LearningRule -> LearningRate -> State -> Hopfield -> Hopfield
 learn rule eta state hopfield =
   let
+    -- | Add 'dW' to the weight at position '(i, j)'. If the position is absent,
+    -- | then returns the origin.
+    updateWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
+    updateWeight i j dW = Hopfield . Map.adjust (+ dW) (i, j) . weightMap
+
     update' (i, j, dW) = updateWeight i j (eta * dW)
     dWij = rule hopfield state
   in

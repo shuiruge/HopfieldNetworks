@@ -4,14 +4,24 @@ import Hopfield
 import Control.Monad.Writer
 import Util
 
-getHopfield :: LearningRule -> LearningRate -> Int -> [State] -> Hopfield
+getHopfield :: LearningRule -> LearningRate -> Int -> [State] -> Writer [String] Hopfield
 getHopfield rule rate epochs states =
   let
     state = head states
     indexList = getIndexList state
     initialize' hopfield' = foldr ($) hopfield'
                                   (connect <$> indexList <*> indexList)
-    learn' = foldr (learn rule rate)
+    
+    learn' :: Hopfield -> [State] -> Writer [String] Hopfield
+    learn' hopfield (st:sts) = do
+      let
+        norm = weightNorm 2 hopfield
+        newHopfield = learn rule rate st hopfield
+      tell ["Norm of weight: " ++ show norm]
+      if sts == []
+        then return $ newHopfield
+      else
+          learn' newHopfield sts
   in
     learn' (initialize' emptyHopfield) (duplicate epochs states)
 
@@ -44,10 +54,11 @@ main = do
           <$> [ "1010101010101"
               , "0101010101010"
               , "1001001001001" ]
-    epochs = 1
-    hopfield = getHopfield rule rate epochs memory
+    epochs = 10
+    (hopfield, learnLog) = runWriter $ getHopfield rule rate epochs memory
     maxStep = 5
     initState = fromBits "1001001011111"
-    write = mapM_ putStrLn . snd . runWriter
-  print hopfield
-  write $ iterate' hopfield maxStep initState
+  putStrLn "\nLearning Process......\n"
+  mapM_ putStrLn learnLog
+  putStrLn "\nUpdating Process......\n"
+  mapM_ putStrLn . snd . runWriter $ iterate' hopfield maxStep initState
