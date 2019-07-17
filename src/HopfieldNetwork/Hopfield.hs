@@ -1,4 +1,4 @@
-module Hopfield (
+module HopfieldNetwork.Hopfield (
   LearningRate
 , Hopfield
 , weightMap
@@ -16,9 +16,9 @@ module Hopfield (
 ) where
 
 import qualified Data.Map.Strict as Map
-import Index
-import Spin
-import State
+import HopfieldNetwork.Index
+import HopfieldNetwork.Spin
+import HopfieldNetwork.State
 
 ------------ Constuction --------------
 

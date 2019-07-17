@@ -1,4 +1,4 @@
-module Index
+module HopfieldNetwork.Index
 ( Index (..)
 ) where
 

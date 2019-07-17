@@ -1,4 +1,4 @@
-module State
+module HopfieldNetwork.State
 ( State
 , getSpin
 , getIndexList
@@ -9,8 +9,8 @@ module State
 ) where
 
 import qualified Data.Map as Map
-import Index
-import Spin
+import HopfieldNetwork.Index
+import HopfieldNetwork.Spin
 
 newtype State = State { indexSpinMap :: Map.Map Index Spin } deriving Eq
 
