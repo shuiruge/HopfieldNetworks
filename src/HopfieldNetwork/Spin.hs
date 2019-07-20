@@ -1,4 +1,4 @@
-module HopfieldNetwork.Spin (
+module Spin (
   Spin (..)
 , toFloat
 , fromBit

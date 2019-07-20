@@ -1,4 +1,4 @@
-module HopfieldNetwork.State
+module State
 ( State
 , getSpin
 , getIndexList
@@ -9,13 +9,13 @@ module HopfieldNetwork.State
 ) where
 
 import qualified Data.Map as Map
-import HopfieldNetwork.Index
-import HopfieldNetwork.Spin
+import Index
+import Spin
 
 newtype State = State { indexSpinMap :: Map.Map Index Spin } deriving Eq
 
 fromList :: [(Index, Spin)] -> State
-fromList = State . Map.fromList . filter (\(index, _) -> index /= Zero) 
+fromList = State . Map.fromList
 
 -- | With index starting at one.
 fromBits :: String -> State

@@ -1,4 +1,4 @@
-module HopfieldNetwork.Hopfield (
+module Hopfield (
   LearningRate
 , Hopfield
 , weightMap
@@ -16,9 +16,9 @@ module HopfieldNetwork.Hopfield (
 ) where
 
 import qualified Data.Map.Strict as Map
-import HopfieldNetwork.Index
-import HopfieldNetwork.Spin
-import HopfieldNetwork.State
+import Index
+import Spin
+import State
 
 ------------ Constuction --------------
 
@@ -61,7 +61,7 @@ connect i j
 setWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
 setWeight i j w = Hopfield . Map.adjust (const w) (i, j) . weightMap
 
--- The p-norm of the weight-matrix of the Hopfield network.
+-- | The p-norm of the weight-matrix of the Hopfield network.
 weightNorm :: Weight -> Hopfield -> Weight
 weightNorm p hopfield =
   let
@@ -74,8 +74,9 @@ energy :: Hopfield -> State -> Float
 energy hopfield state =
   let
     toFloat' :: Maybe Spin -> Float
-    toFloat' Nothing = 0
-    toFloat' (Just spin) = toFloat spin
+    toFloat' x = case x of
+      Nothing -> 0
+      (Just spin) -> toFloat spin
 
     s = toFloat' . getSpin state
     w = weight hopfield
@@ -86,13 +87,13 @@ energy hopfield state =
 
 ------------ Update State --------------
 
--- The activity rule of Hopfield network
+-- | The activity rule of Hopfield network
 activity :: (Real a) => a -> Spin
 activity x
   | x >= 0 = Up
   | otherwise = Down
 
--- The asynchronous update rule of Hopfield network
+-- | The asynchronous update rule of Hopfield network
 asynUpdate :: Hopfield -> [Index] -> State -> State
 asynUpdate hopfield indexList state =
   let
@@ -110,7 +111,7 @@ asynUpdate hopfield indexList state =
 
 ------------ Learning --------------
 
--- The $dW_{ij} / dt$ in plasticity learning
+-- | The $dW_{ij} / dt$ in plasticity learning
 type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
 
 {-
@@ -162,12 +163,12 @@ ojaRule r hopfield state = do
 
 type LearningRate = Float
 
--- Memorizes the state into the Hopfield network
+-- | Memorizes the state into the Hopfield network
 learn :: LearningRule -> LearningRate -> State -> Hopfield -> Hopfield
 learn rule eta state hopfield =
   let
-    -- | Add 'dW' to the weight at position '(i, j)'. If the position is absent,
-    -- | then returns the origin.
+    -- Add 'dW' to the weight at position '(i, j)'. If the position is absent,
+    -- then returns the origin.
     updateWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
     updateWeight i j dW = Hopfield . Map.adjust (+ dW) (i, j) . weightMap
 

@@ -1,6 +1,6 @@
-import HopfieldNetwork.State
-import HopfieldNetwork.Hopfield
-import HopfieldNetwork.Util
+import State
+import Hopfield
+import Util
 import Control.Monad.Writer
 
 
