@@ -1,7 +1,7 @@
 module ParseMnist
 ( Input
 , Target
-, Datum(..)
+, Datum (..)
 , readMnist
 ) where
 
@@ -24,17 +24,17 @@ getCsv path = do
   return $ either handleError tail $ parseCSV path file
  
 
-type Input = [Float]
+type Input = [Double]
 type Target = Int
 data Datum = Datum { input :: Input, target :: Target } deriving Show
 
 
-toFloat :: String -> Float
-toFloat = read
+toDouble :: String -> Double
+toDouble = read
 
 
 toInt :: String -> Int
-toInt = round . toFloat
+toInt = round . toDouble
 
 
 parseRecord :: Record -> Maybe Datum
@@ -44,10 +44,10 @@ parseRecord record =
   else
     let
       normalize = (/ 255)
-      input = normalize . toFloat <$> tail record
-      target = toInt $ head record
+      inpt = normalize . toDouble <$> tail record
+      targ = toInt $ head record
     in
-      Just (Datum input target)
+      Just (Datum inpt targ)
 
 
 readMnist :: FilePath -> IO [Maybe Datum]

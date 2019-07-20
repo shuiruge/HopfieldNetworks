@@ -1,6 +1,6 @@
 module Spin (
   Spin (..)
-, toFloat
+, toDouble
 , fromBit
 ) where
 
@@ -9,9 +9,10 @@ instance Show Spin where
   show Up = "1"
   show Down = "0"
 
-toFloat :: Spin -> Float
-toFloat Up = 1
-toFloat Down = -1
+toDouble :: Spin -> Double
+toDouble spin = case spin of
+  Up -> 1
+  Down -> -1
 
 fromBit :: Char -> Spin
 fromBit '1' = Up

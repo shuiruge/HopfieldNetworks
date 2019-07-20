@@ -22,7 +22,7 @@ import State
 
 ------------ Constuction --------------
 
-type Weight = Float
+type Weight = Double
 
 -- The weight at position '(i, j)' where i >= j shall be kept absent.
 newtype Hopfield = Hopfield { weightMap :: Map.Map (Index, Index) Weight }
@@ -65,20 +65,20 @@ setWeight i j w = Hopfield . Map.adjust (const w) (i, j) . weightMap
 weightNorm :: Weight -> Hopfield -> Weight
 weightNorm p hopfield =
   let
-    norm :: [Float] -> Float
+    norm :: [Weight] -> Weight
     norm xs = sum (map (**p) xs) ** (1/p)
   in 
     norm [v | (_, v) <- (Map.toList . weightMap) hopfield]
 
-energy :: Hopfield -> State -> Float
+energy :: Hopfield -> State -> Double
 energy hopfield state =
   let
-    toFloat' :: Maybe Spin -> Float
-    toFloat' x = case x of
+    toDouble' :: Maybe Spin -> Double
+    toDouble' x = case x of
       Nothing -> 0
-      (Just spin) -> toFloat spin
+      (Just spin) -> toDouble spin
 
-    s = toFloat' . getSpin state
+    s = toDouble' . getSpin state
     w = weight hopfield
     ids = getIndexList state
   in
@@ -102,7 +102,7 @@ asynUpdate hopfield indexList state =
     update h i s = 
       let
         w = weight h
-        a = sum [w i j * toFloat sj | (j, sj) <- toList s]
+        a = sum [w i j * toDouble sj | (j, sj) <- toList s]
       in
         updateState i (activity a) s
   in
@@ -123,8 +123,8 @@ hebbRule _ state = do
   (i, u') <- toList state
   (j, v') <- toList state
   let
-    u = toFloat u'
-    v = toFloat v'
+    u = toDouble u'
+    v = toDouble v'
     dW
       | i == j = 0
       | otherwise = u * v
@@ -153,15 +153,15 @@ ojaRule r hopfield state = do
   (i, u') <- toList state
   (j, v') <- toList state
   let
-    u = toFloat u'
-    v = toFloat v'
+    u = toDouble u'
+    v = toDouble v'
     w = weight hopfield i j
     dW
       | i == j = 0
       | otherwise = r**2 * u * v - w
   return (i, j, dW)
 
-type LearningRate = Float
+type LearningRate = Double
 
 -- | Memorizes the state into the Hopfield network
 learn :: LearningRule -> LearningRate -> State -> Hopfield -> Hopfield
