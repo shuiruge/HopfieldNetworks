@@ -1,14 +1,16 @@
 module Hopfield (
-  LearningRate
+  Weight
 , Hopfield
 , weightMap
 , emptyHopfield
-, weight
 , connect
+, weight
+, connections
 , setWeight
 , weightNorm
 , energy
 , asynUpdate
+, LearningRate
 , LearningRule
 , hebbRule
 , ojaRule
@@ -19,6 +21,7 @@ import qualified Data.Map.Strict as Map
 import Index
 import Spin
 import State
+
 
 ------------ Constuction --------------
 
@@ -33,6 +36,15 @@ instance Show Hopfield where
 
 emptyHopfield :: Hopfield
 emptyHopfield = Hopfield $ Map.fromList []
+
+-- Add connection between indices 'i' and 'j' on the Hopfield network.
+connect :: Index -> Index -> Hopfield -> Hopfield
+connect i j
+  | i >= j = id
+  | otherwise = Hopfield . Map.insert (i, j) 0 . weightMap
+
+
+------------ Deconstruction --------------
 
 -- | The weight at position '(i, j)' or '(j, i)' of the Hopfield network.
 -- | If the weight is absent at the position '(i, j)' or '(j, i)',
@@ -50,16 +62,17 @@ weight hopfield i j =
       nothingToZero $ Map.lookup (i, j)
                     $ weightMap hopfield
 
--- Add connection between indices 'i' and 'j' on the Hopfield network.
-connect :: Index -> Index -> Hopfield -> Hopfield
-connect i j
-  | i >= j = id
-  | otherwise = Hopfield . Map.insert (i, j) 0 . weightMap
+-- | All the connections within the Hopfield network.
+connections :: Hopfield -> [(Index, Index)]
+connections = Map.keys . weightMap
 
 -- | Manually set the $W_ij$ of the Hopfield network
 -- | If the weight at position '(i, j)' does not exist, then returns the origin.
 setWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
 setWeight i j w = Hopfield . Map.adjust (const w) (i, j) . weightMap
+
+
+------------ Util Functions --------------
 
 -- | The p-norm of the weight-matrix of the Hopfield network.
 weightNorm :: Weight -> Hopfield -> Weight

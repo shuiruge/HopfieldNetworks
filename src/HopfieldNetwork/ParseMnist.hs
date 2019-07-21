@@ -2,6 +2,8 @@ module ParseMnist
 ( Input
 , Target
 , Datum (..)
+, readCsv
+, parseRecord
 , readMnist
 ) where
 
@@ -14,8 +16,8 @@ import Text.Parsec.Error (ParseError)
 -- type CSV = [Record]
 
 
-getCsv :: FilePath -> IO CSV
-getCsv path = do
+readCsv :: FilePath -> IO CSV
+readCsv path = do
   file <- readFile path
   let
     handleError :: ParseError -> CSV
@@ -52,5 +54,5 @@ parseRecord record =
 
 readMnist :: FilePath -> IO [Maybe Datum]
 readMnist path = do
-  csv <- getCsv path
+  csv <- readCsv path
   return $ parseRecord <$> csv
