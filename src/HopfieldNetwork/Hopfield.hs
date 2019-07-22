@@ -3,6 +3,7 @@ module Hopfield (
 , Hopfield
 , weightMap
 , emptyHopfield
+, connectWith
 , connect
 , weight
 , connections
@@ -21,6 +22,7 @@ import qualified Data.Map.Strict as Map
 import Index
 import Spin
 import State
+import Util (foldr')
 
 
 ------------ Constuction --------------
@@ -38,10 +40,14 @@ emptyHopfield :: Hopfield
 emptyHopfield = Hopfield $ Map.fromList []
 
 -- Add connection between indices 'i' and 'j' on the Hopfield network.
-connect :: Index -> Index -> Hopfield -> Hopfield
-connect i j
+connectWith :: Weight -> Index -> Index -> Hopfield -> Hopfield
+connectWith w i j
   | i >= j = id
-  | otherwise = Hopfield . Map.insert (i, j) 0 . weightMap
+  | otherwise = Hopfield . Map.insert (i, j) w . weightMap
+
+-- Add connection between indices 'i' and 'j' on the Hopfield network.
+connect :: Index -> Index -> Hopfield -> Hopfield
+connect = connectWith 0
 
 
 ------------ Deconstruction --------------
@@ -119,7 +125,7 @@ asynUpdate hopfield indexList state =
       in
         updateState i (activity a) s
   in
-    foldr (update hopfield) state indexList
+    foldr' (update hopfield) state indexList
 
 
 ------------ Learning --------------
@@ -188,4 +194,4 @@ learn rule eta state hopfield =
     update' (i, j, dW) = updateWeight i j (eta * dW)
     dWij = rule hopfield state
   in
-    foldr update' hopfield dWij
+    foldr' update' hopfield dWij

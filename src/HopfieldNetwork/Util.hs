@@ -1,5 +1,7 @@
 module Util
 ( shuffle
+, foldr'
+, foldM'
 , duplicate
 ) where
 
@@ -7,6 +9,7 @@ module Util
 import System.Random
 import Data.Array.IO
 import Control.Monad
+import Data.List (foldl')
 
 
 -- | Randomly shuffle a list
@@ -26,6 +29,20 @@ shuffle xs = do
     newArray' m =  newListArray (1, m)
 
 
+-- | Right-associative fold of a structure but with strict application of the operator.
+foldr' :: Foldable t => (a -> b -> b) -> b -> t a -> b
+foldr' f = foldl' (flip f)
+
+
+-- | Strict version of 'foldM'
+-- C.f. https://stackoverflow.com/a/8919106
+foldM' :: (Monad m) => (a -> b -> m a) -> a -> [b] -> m a
+foldM' _ z [] = return z
+foldM' f z (x:xs) = do
+  z' <- f z x
+  z' `seq` foldM' f z' xs
+
+
 -- | Makes, say, [1, 2] to [1, 2, 1, 2, 1, 2] if 'n' is 3.
 duplicate :: Int -> [a] -> [a]
-duplicate n xs = foldr (++) [] $ take n (repeat xs)
+duplicate n xs = foldr' (++) [] $ replicate n xs
