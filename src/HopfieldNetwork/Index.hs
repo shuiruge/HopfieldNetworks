@@ -5,7 +5,7 @@ module Index
 
 import Data.Hashable (Hashable, hash, hashWithSalt)
 
-data Index = Index { components :: [Int] , hashValue :: Int } deriving Eq
+data Index = Index { components :: [Int] , hashValue :: Int } deriving (Eq, Ord)
 
 index :: [Int] -> Index
 index xs = let getHash = hash . show
@@ -14,9 +14,6 @@ index xs = let getHash = hash . show
 
 instance Show Index where
   show = show . components
-
-instance Ord Index where
-  compare i j = compare (hashValue i) (hashValue j)
 
 instance Hashable Index where
   hash = hashValue

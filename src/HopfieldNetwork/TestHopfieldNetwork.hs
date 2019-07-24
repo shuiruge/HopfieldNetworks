@@ -60,7 +60,7 @@ main = do
     maxStep = 5
     -- initState = fromBits "1001001001001"  -- baisc test.
     -- initState = fromBits "1001001011111"
-    initState = fromBits "1001001111111"
+    initState = fromBits "1101001001111"
 
   putStrLn "\nLearning Process......\n"
   mapM_ putStrLn learnLog
