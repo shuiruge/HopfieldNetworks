@@ -36,7 +36,7 @@ getSpinList :: State -> [Spin]
 getSpinList = Map.elems . indexSpinMap
 
 getSpin :: State -> Index -> Maybe Spin
-getSpin state i = Map.lookup i (indexSpinMap state)
+getSpin stat i = Map.lookup i (indexSpinMap stat)
 
 instance Show State where
   show = concatMap show . getSpinList
