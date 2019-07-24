@@ -13,6 +13,7 @@ module Hopfield (
 , asynUpdate
 , LearningRate
 , LearningRule
+, generalRule
 , hebbRule
 , ojaRule
 , learn
@@ -90,16 +91,16 @@ weightNorm p hopfield =
     norm [v | (_, v) <- (Map.toList . weightMap) hopfield]
 
 energy :: Hopfield -> State -> Double
-energy hopfield state =
+energy hopf stat =
   let
     toDouble' :: Maybe Spin -> Double
     toDouble' x = case x of
       Nothing -> 0
       (Just spin) -> toDouble spin
 
-    s = toDouble' . getSpin state
-    w = weight hopfield
-    ids = getIndexList state
+    s = toDouble' . getSpin stat
+    w = weight hopf
+    ids = getIndexList stat
   in
     - 0.5 * sum [s i * w i j * s j | i <- ids, j <- ids]
 
@@ -114,7 +115,7 @@ activity x
 
 -- | The asynchronous update rule of Hopfield network
 asynUpdate :: Hopfield -> [Index] -> State -> State
-asynUpdate hopfield indexList state =
+asynUpdate hopf indexList stat =
   let
     -- The update rule of Hopfield network for one index of the state
     update :: Hopfield -> Index -> State -> State
@@ -125,7 +126,7 @@ asynUpdate hopfield indexList state =
       in
         updateState i (activity a) s
   in
-    foldr' (update hopfield) state indexList
+    foldr' (update hopf) stat indexList
 
 
 ------------ Learning --------------
@@ -134,20 +135,35 @@ asynUpdate hopfield indexList state =
 type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
 
 {-
+  The general form of Hebbian learning rule is
+
+    $$ \frac{ dw_{ij} }{ dt } = F(w_{ij}, x_i, x_j) $$
+
+  and
+
+    $$ F(w, x, y) = f(w) + g(w) x y. $$
+-}
+generalRule :: (Weight -> Weight) -> (Weight -> Weight) -> LearningRule
+generalRule f g hopf stat = do
+  (i, u') <- toList stat
+  (j, v') <- toList stat
+  let
+    u = toDouble u'
+    v = toDouble v'
+    w = weight hopf i j
+    dW
+      | i == j = 0
+      | otherwise = f w + g w * u * v
+  return (i, j, dW)
+
+
+{-
   The proof that the hebb rule makes the reference states the memeory of
   the network can be found in Mackay's book, section 42.7.
 -}
 hebbRule :: LearningRule
-hebbRule _ state = do
-  (i, u') <- toList state
-  (j, v') <- toList state
-  let
-    u = toDouble u'
-    v = toDouble v'
-    dW
-      | i == j = 0
-      | otherwise = u * v
-  return (i, j, dW)
+hebbRule = generalRule (const 0) (const 1)
+
 
 {-
   Oja's rule herein is
@@ -169,23 +185,14 @@ hebbRule _ state = do
         state learned by Oja's rule.
 -}
 ojaRule :: Weight -> LearningRule
-ojaRule r hopfield state = do
-  (i, u') <- toList state
-  (j, v') <- toList state
-  let
-    u = toDouble u'
-    v = toDouble v'
-    w = weight hopfield i j
-    dW
-      | i == j = 0
-      | otherwise = r**2 * u * v - w
-  return (i, j, dW)
+ojaRule r = generalRule (\_ -> -1) (\_ -> r**2)
+
 
 type LearningRate = Double
 
 -- | Memorizes the state into the Hopfield network
 learn :: LearningRule -> LearningRate -> State -> Hopfield -> Hopfield
-learn rule eta state hopfield =
+learn rule eta stat hopf =
   let
     -- Add 'dW' to the weight at position '(i, j)'. If the position is absent,
     -- then returns the origin.
@@ -193,6 +200,6 @@ learn rule eta state hopfield =
     updateWeight i j dW = Hopfield . Map.adjust (+ dW) (i, j) . weightMap
 
     update' (i, j, dW) = updateWeight i j (eta * dW)
-    dWij = rule hopfield state
+    dWij = rule hopf stat
   in
-    foldr' update' hopfield dWij
+    foldr' update' hopf dWij
