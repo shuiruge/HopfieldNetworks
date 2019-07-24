@@ -7,8 +7,8 @@ import Control.Monad.Writer
 getHopfield :: LearningRule -> LearningRate -> Int -> [State] -> Writer [String] Hopfield
 getHopfield rule rate epochs states =
   let
-    state = head states
-    indexList = getIndexList state
+    s = head states
+    indexList = getIndexList s
     initialize' hopfield' = foldr ($) hopfield'
                                   (connect <$> indexList <*> indexList)
     
@@ -25,24 +25,24 @@ getHopfield rule rate epochs states =
 
 
 ordinalAsynUpdate :: Hopfield -> State -> State
-ordinalAsynUpdate hopfield state = asynUpdate hopfield (getIndexList state) state
+ordinalAsynUpdate h s = asynUpdate h (getIndexList s) s
 
 
 iterate' :: Hopfield -> Int -> State -> Writer [String] State
-iterate' hopfield maxStep state
-  | maxStep == 0 = return state
+iterate' h maxStep s
+  | maxStep == 0 = return s
   | otherwise = do
     let
-      e = energy hopfield state
-      state' = ordinalAsynUpdate hopfield state
-      e' = energy hopfield state'
+      e = energy h s
+      s' = ordinalAsynUpdate h s
+      e' = energy h s'
       maxStep'
         | e == e' = 0  -- stop iteration.
         | otherwise = maxStep - 1
-    tell ["State  | " ++ show state]
+    tell ["State  | " ++ show s]
     tell ["Energy | " ++ show e]
     tell ["------ | --------"]
-    iterate' hopfield maxStep' state'
+    iterate' h maxStep' s'
 
 
 main :: IO ()
@@ -58,8 +58,9 @@ main = do
     epochs = 10
     (hopfield, learnLog) = runWriter $ getHopfield rule rate epochs memory
     maxStep = 5
-    initState = fromBits "1001001011111"
-    -- initState = fromBits "1010101010111"
+    -- initState = fromBits "1001001001001"  -- baisc test.
+    -- initState = fromBits "1001001011111"
+    initState = fromBits "1001001111111"
 
   putStrLn "\nLearning Process......\n"
   mapM_ putStrLn learnLog

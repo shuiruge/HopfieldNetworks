@@ -3,6 +3,9 @@ module Util
 , foldr'
 , foldM'
 , duplicate
+, mean
+, var
+, std
 ) where
 
 
@@ -46,3 +49,19 @@ foldM' f z (x:xs) = do
 -- | Makes, say, [1, 2] to [1, 2, 1, 2, 1, 2] if 'n' is 3.
 duplicate :: Int -> [a] -> [a]
 duplicate n xs = foldr' (++) [] $ replicate n xs
+
+
+mean :: [Double] -> Double
+mean xs =
+  let n = fromIntegral $ length xs
+  in sum xs / n
+
+var :: [Double] -> Double
+var xs =
+  let
+    xBar = mean xs
+    square x = x * x
+  in mean $ square . (xBar -) <$> xs
+
+std :: [Double] -> Double
+std = sqrt . var

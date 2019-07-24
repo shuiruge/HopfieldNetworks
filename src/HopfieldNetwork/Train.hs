@@ -5,8 +5,7 @@ import Hopfield
 import ParseMnist
 import Util (foldr', foldM')
 import Control.Monad.Writer
-import Data.Random
-import Debug.Trace
+import System.Random
 
 
 type Step = Int
@@ -16,11 +15,11 @@ type HiddenIds = [Index]
 
 
 getInputIds :: Dimension -> InputIds
-getInputIds dim = (\i -> Index [0, i]) <$> [1..dim]
+getInputIds dim = (\i -> index [0, i]) <$> [1..dim]
 
 
 getHiddenIds :: Dimension -> HiddenIds
-getHiddenIds dim = (\i -> Index [1, i]) <$> [1..dim]
+getHiddenIds dim = (\i -> index [1, i]) <$> [1..dim]
 
 
 getInitHopfield :: InputIds -> HiddenIds -> IO Hopfield
@@ -30,8 +29,8 @@ getInitHopfield iids hids =
 
     connect' :: Hopfield -> (Index, Index) -> IO Hopfield
     connect' h (i, j) = do
-      rand <- runRVar (normal 0 1) StdRandom :: IO Double
-      let w = std * rand
+      rand <- randomIO :: IO Double  -- in range [0, 1)
+      let w = std * (2 * rand - 1)
       return $ connectWith w i j h
 
     mix :: [a] -> [b] -> [(a, b)]
@@ -43,8 +42,21 @@ getInitHopfield iids hids =
     foldM' connect' emptyHopfield indexPairs
 
 
-getInitState :: InputIds -> HiddenIds -> State
-getInitState iids hids = fromList [(i, Down) | i <- iids ++ hids]
+getInitState :: InputIds -> HiddenIds -> IO State
+getInitState iids hids = do
+  let
+    readSpin :: Double -> Spin
+    readSpin x
+      | x >= 0.5 = Up
+      | otherwise = Down
+
+    indexRandomSpin:: Index -> IO (Index, Spin)
+    indexRandomSpin i = do
+      rand <- randomIO :: IO Double  -- in range [0, 1)
+      return (i, readSpin rand)
+  indexSpinList <- mapM indexRandomSpin (iids ++ hids)
+  return $ state indexSpinList
+    
 
 
 relax :: Hopfield -> Step -> HiddenIds -> State -> State
@@ -58,7 +70,7 @@ relax h maxStep hids s =
           then 0  -- stop iteration.
         else maxStep - 1
     in
-      trace ("---" ++ show s') $ relax h maxStep' hids s'
+      relax h maxStep' hids s'
 
 
 setInput :: Datum -> State -> State
@@ -73,7 +85,7 @@ setInput d s =
 
     update :: (Index, Spin) -> State -> State
     update (i, sp) = updateState i sp
-    idxSpinList = [(Index [0, i], toSpin x) | (i, x) <- enum (input d)]
+    idxSpinList = [(index [0, i], toSpin x) | (i, x) <- enum (input d)]
   in
     foldr' update s idxSpinList
   
@@ -88,10 +100,8 @@ iterate_ :: Step  -- max step in relaxing
 iterate_ n rule lr hids d (h, s) =
   let
     sd = setInput d s
-    sd1 = trace ("Set input: " ++ show sd) sd
-    s' = relax h n hids sd1
-    s'1 = trace ("Relaxed : " ++ show s') s'
-    h' = learn rule lr s'1 h
+    s' = relax h n hids sd
+    h' = learn rule lr s' h
   in
     (h', s')
 
@@ -100,13 +110,13 @@ main :: IO ()
 main = do
   let
     maxStep = 5
+    -- rule = hebbRule
     rule = ojaRule 1
     lr = 0.1
     inputDim = 784
-    hiddenDim = 128
+    hiddenDim = 1024
     inputIds = getInputIds inputDim
     hiddenIds = getHiddenIds hiddenDim
-    state = getInitState inputIds hiddenIds
 
     train :: [Maybe Datum]
           -> (Hopfield, State)
@@ -122,7 +132,8 @@ main = do
       tell ["|W|: " ++ show norm]
       train ds (h', s')
 
+  state <- getInitState inputIds hiddenIds
   hopfield <- getInitHopfield inputIds hiddenIds
   mnist <- readMnist "mnist_test.csv"
   mapM_ putStrLn . snd . runWriter $
-    train (take 3 mnist) (hopfield, state)
+    train (take 2 mnist) (hopfield, state)

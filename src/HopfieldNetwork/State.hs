@@ -2,29 +2,29 @@ module State
 ( State
 , getSpin
 , getIndexList
-, fromList
+, state
 , toList
 , fromBits
 , updateState
 ) where
 
-import qualified Data.Map as Map
+import qualified Data.Map.Lazy as Map
 import Index
 import Spin
 
 newtype State = State { indexSpinMap :: Map.Map Index Spin } deriving Eq
 
-fromList :: [(Index, Spin)] -> State
-fromList = State . Map.fromList
+state :: [(Index, Spin)] -> State
+state = State . Map.fromList
 
 -- | With index starting at one.
 fromBits :: String -> State
 fromBits bits =
   let
-    fromBit' (index, bit) = (index, fromBit bit)
-    enumerate = zip [Index [i] | i <- [1..]]
+    fromBit' (i, bit) = (i, fromBit bit)
+    enumerate = zip [index [i] | i <- [1..]]
   in
-    fromList $ map fromBit' (enumerate bits)
+    state $ map fromBit' (enumerate bits)
 
 toList :: State -> [(Index, Spin)]
 toList = Map.toList . indexSpinMap

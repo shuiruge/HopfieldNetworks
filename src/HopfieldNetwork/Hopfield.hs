@@ -18,7 +18,7 @@ module Hopfield (
 , learn
 ) where
 
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Lazy as Map
 import Index
 import Spin
 import State
@@ -162,10 +162,11 @@ hebbRule _ state = do
   It seems that the ojaRule cannot gives the correct result if the learning
   rate is large (say 1), even for a large epochs of learning.
 
-  TODO:
-    1. Add the proof of boundness of the weight by this Oja's rule.
-    2. Add the proof that the updating of state does converge to the reference
-       state learned by Oja's rule.
+  For all $(i, j)$, the weight $W_{ij}$ by this Oja's rule is bounded between
+  $-1$ and $+1$.
+
+  TODO: Add the proof that the updating of state does converge to the reference
+        state learned by Oja's rule.
 -}
 ojaRule :: Weight -> LearningRule
 ojaRule r hopfield state = do
