@@ -191,7 +191,7 @@ hebbRule = generalRule (const 0) (const 0) (const 1)
         state learned by Oja's rule.
 -}
 ojaRule :: Weight -> LearningRule
-ojaRule r = generalRule (const (-1)) (const 0) (const (r**2))
+ojaRule r = generalRule (\w -> -w) (const 0) (const (r**2))
 
 
 type LearningRate = Double

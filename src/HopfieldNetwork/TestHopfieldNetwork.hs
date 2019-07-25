@@ -48,14 +48,14 @@ iterate' h maxStep s
 main :: IO ()
 main = do
   let
-    rate = 0.1
+    rate = 0.01
     -- rule = hebbRule
     rule = ojaRule 1
     memory = fromBits
           <$> [ "1010101010101"
               , "0101010101010"
               , "1001001001001" ]
-    epochs = 10
+    epochs = 10000
     (hopfield, learnLog) = runWriter $ getHopfield rule rate epochs memory
     maxStep = 5
     -- initState = fromBits "1001001001001"  -- baisc test.
@@ -67,3 +67,5 @@ main = do
 
   putStrLn "\nUpdating Process......\n"
   mapM_ putStrLn . snd . runWriter $ iterate' hopfield maxStep initState
+
+  print hopfield
