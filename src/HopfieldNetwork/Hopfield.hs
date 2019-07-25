@@ -135,16 +135,22 @@ asynUpdate hopf indexList stat =
 type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
 
 {-
-  The general form of Hebbian learning rule is
+  The general form of Hebbian learning rule is, by locality,
 
     $$ \frac{ dw_{ij} }{ dt } = F(w_{ij}, x_i, x_j) $$
 
-  and
+  where, by symmetry, $F(w, x, y) \equiv F(w, y, x)$. The $x, y$ are either
+  $-1$ or $1$. This implies that $F$ has to be the form
 
-    $$ F(w, x, y) = f(w) + g(w) x y. $$
+    $$ F(w, x, y) = f(w) + g(w) (x + y) + h(w) x y $$
+
+  where $f$, $g$, and $h$ are arbitrary.
 -}
-generalRule :: (Weight -> Weight) -> (Weight -> Weight) -> LearningRule
-generalRule f g hopf stat = do
+generalRule :: (Weight -> Double)  -- f(.)
+            -> (Weight -> Double)  -- g(.)
+            -> (Weight -> Double)  -- h(.)
+            -> LearningRule
+generalRule f g h hopf stat = do
   (i, u') <- toList stat
   (j, v') <- toList stat
   let
@@ -153,7 +159,7 @@ generalRule f g hopf stat = do
     w = weight hopf i j
     dW
       | i == j = 0
-      | otherwise = f w + g w * u * v
+      | otherwise = f w + g w * (u + v) + h w * u * v
   return (i, j, dW)
 
 
@@ -162,7 +168,7 @@ generalRule f g hopf stat = do
   the network can be found in Mackay's book, section 42.7.
 -}
 hebbRule :: LearningRule
-hebbRule = generalRule (const 0) (const 1)
+hebbRule = generalRule (const 0) (const 0) (const 1)
 
 
 {-
@@ -185,7 +191,7 @@ hebbRule = generalRule (const 0) (const 1)
         state learned by Oja's rule.
 -}
 ojaRule :: Weight -> LearningRule
-ojaRule r = generalRule (\_ -> -1) (\_ -> r**2)
+ojaRule r = generalRule (const (-1)) (const 0) (const (r**2))
 
 
 type LearningRate = Double
