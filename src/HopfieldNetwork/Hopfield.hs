@@ -13,7 +13,6 @@ module Hopfield
 , asynUpdate
 , LearningRate
 , LearningRule
-, learningRule
 , hebbRule
 , ojaRule
 , learn
@@ -124,9 +123,6 @@ asynUpdate hopf indexList stat =
 
 ------------ Learning --------------
 
--- | The $dW_{ij} / dt$ in plasticity learning
-type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
-
 {-
   The general form of Hebbian learning rule is, by locality,
 
@@ -134,15 +130,7 @@ type LearningRule = Hopfield -> State -> [(Index, Index, Weight)]
 
   where, by symmetry, $f(w, x, y) \equiv f(w, y, x)$.
 -}
-learningRule :: (Weight -> Spin -> Spin -> Weight)  -- f(w, x, y)
-             -> LearningRule
-learningRule f hopf stat = do
-  (i, x) <- toList stat
-  (j, y) <- toList stat
-  let
-    w = weight hopf i j
-    dW = if i == j then 0 else f w x y
-  return (i, j, dW)
+type LearningRule = (Weight -> Spin -> Spin -> Weight)  -- f(w, x, y)
 
 
 {-
@@ -150,7 +138,7 @@ learningRule f hopf stat = do
   the network can be found in Mackay's book, section 42.7.
 -}
 hebbRule :: LearningRule
-hebbRule = learningRule (\w x y -> x * y)
+hebbRule = \w x y -> x * y
 
 
 {-
@@ -173,7 +161,7 @@ hebbRule = learningRule (\w x y -> x * y)
         state learned by Oja's rule.
 -}
 ojaRule :: Weight -> LearningRule
-ojaRule r = learningRule (\w x y -> r**2 * x * y - w)
+ojaRule r = \w x y -> r**2 * x * y - w
 
 
 type LearningRate = Double
@@ -188,6 +176,13 @@ learn rule eta stat hopf =
     updateWeight i j dW = Hopfield . Map.adjust (+ dW) (i, j) . weightMap
 
     update' (i, j, dW) = updateWeight i j (eta * dW)
-    dWij = rule hopf stat
+
+    dWij = do
+      (i, x) <- toList stat
+      (j, y) <- toList stat
+      let
+        w = weight hopf i j
+        dW = if i == j then 0 else rule w x y
+      return (i, j, dW)
   in
     foldr' update' hopf dWij
