@@ -1,19 +1,7 @@
-module Spin (
-  Spin (..)
-, toDouble
-, fromBit
-) where
+module Spin (Spin, spin) where
 
-data Spin = Up | Down deriving Eq
-instance Show Spin where
-  show Up = "1"
-  show Down = "0"
+type Spin = Double
 
-toDouble :: Spin -> Double
-toDouble spin = case spin of
-  Up -> 1
-  Down -> -1
-
-fromBit :: Char -> Spin
-fromBit '1' = Up
-fromBit _ = Down
+spin :: (Show a) => a -> Spin
+spin x = let s = show x
+         in if s == "1" || s == "'1'" then 1 else -1

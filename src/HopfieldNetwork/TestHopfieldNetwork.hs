@@ -8,7 +8,7 @@ getHopfield :: LearningRule -> LearningRate -> Int -> [State] -> Writer [String]
 getHopfield rule rate epochs states =
   let
     s = head states
-    indexList = getIndexList s
+    indexList = indices s
     initialize' hopfield' = foldr ($) hopfield'
                                   (connect <$> indexList <*> indexList)
     
@@ -25,7 +25,7 @@ getHopfield rule rate epochs states =
 
 
 ordinalAsynUpdate :: Hopfield -> State -> State
-ordinalAsynUpdate h s = asynUpdate h (getIndexList s) s
+ordinalAsynUpdate h s = asynUpdate h (indices s) s
 
 
 iterate' :: Hopfield -> Int -> State -> Writer [String] State
@@ -33,14 +33,12 @@ iterate' h maxStep s
   | maxStep == 0 = return s
   | otherwise = do
     let
-      e = energy h s
       s' = ordinalAsynUpdate h s
-      e' = energy h s'
       maxStep'
-        | e == e' = 0  -- stop iteration.
+        | s == s' = 0  -- stop iteration.
         | otherwise = maxStep - 1
     tell ["State  | " ++ show s]
-    tell ["Energy | " ++ show e]
+    tell ["Energy | " ++ show (energy h s)]
     tell ["------ | --------"]
     iterate' h maxStep' s'
 
@@ -55,7 +53,7 @@ main = do
           <$> [ "1010101010101"
               , "0101010101010"
               , "1001001001001" ]
-    epochs = 10000
+    epochs = 1000
     (hopfield, learnLog) = runWriter $ getHopfield rule rate epochs memory
     maxStep = 5
     -- initState = fromBits "1001001001001"  -- baisc test.
@@ -67,5 +65,3 @@ main = do
 
   putStrLn "\nUpdating Process......\n"
   mapM_ putStrLn . snd . runWriter $ iterate' hopfield maxStep initState
-
-  print hopfield

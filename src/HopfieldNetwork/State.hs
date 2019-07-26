@@ -1,7 +1,8 @@
 module State
 ( State
 , getSpin
-, getIndexList
+, indices
+, spins
 , state
 , toList
 , fromBits
@@ -9,6 +10,7 @@ module State
 ) where
 
 import qualified Data.Map.Lazy as Map
+import Data.List (foldl')
 import Index
 import Spin
 
@@ -21,7 +23,7 @@ state = State . Map.fromList
 fromBits :: String -> State
 fromBits bits =
   let
-    fromBit' (i, bit) = (i, fromBit bit)
+    fromBit' (i, bit) = (i, spin bit)
     enumerate = zip [index [i] | i <- [1..]]
   in
     state $ map fromBit' (enumerate bits)
@@ -29,17 +31,26 @@ fromBits bits =
 toList :: State -> [(Index, Spin)]
 toList = Map.toList . indexSpinMap
 
-getIndexList :: State -> [Index]
-getIndexList = Map.keys . indexSpinMap
+indices :: State -> [Index]
+indices = Map.keys . indexSpinMap
 
-getSpinList :: State -> [Spin]
-getSpinList = Map.elems . indexSpinMap
+spins :: State -> [Spin]
+spins = Map.elems . indexSpinMap
 
 getSpin :: State -> Index -> Maybe Spin
 getSpin stat i = Map.lookup i (indexSpinMap stat)
 
+toBits :: State -> String
+toBits stat =
+  let
+    toStr :: Spin -> String
+    toStr x = if x >= 0 then "1" else "0"
+
+  in
+    foldl' (++) "" (map toStr (spins stat))
+
 instance Show State where
-  show = concatMap show . getSpinList
+  show = toBits
 
 -- | Updates the state by replacing the spin at the index.
 updateState :: Index -> Spin -> State -> State

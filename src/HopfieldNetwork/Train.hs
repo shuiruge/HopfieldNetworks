@@ -6,6 +6,7 @@ import ParseMnist
 import Util (foldr', foldM')
 import Control.Monad.Writer
 import System.Random
+import Debug.Trace
 
 
 type Step = Int
@@ -29,9 +30,10 @@ getInitHopfield iids hids =
 
     connect' :: Hopfield -> (Index, Index) -> IO Hopfield
     connect' h (i, j) = do
-      rand <- randomIO :: IO Double  -- in range [0, 1)
-      let w = std * (2 * rand - 1)
-      return $ connectWith w i j h
+      -- rand <- randomIO :: IO Double  -- in range [0, 1)
+      -- let w = std * (2 * rand - 1)
+      -- return $ connectWith w i j h
+      return $ connectWith 0 i j h
 
     mix :: [a] -> [b] -> [(a, b)]
     mix [] _ = []
@@ -56,7 +58,6 @@ getInitState iids hids = do
       return (i, readSpin rand)
   indexSpinList <- mapM indexRandomSpin (iids ++ hids)
   return $ state indexSpinList
-    
 
 
 relax :: Hopfield -> Step -> HiddenIds -> State -> State
@@ -100,7 +101,8 @@ iterate_ :: Step  -- max step in relaxing
 iterate_ n rule lr hids d (h, s) =
   let
     sd = setInput d s
-    s' = relax h n hids sd
+    s'0 = relax h n hids sd
+    s' = trace ("State: " ++ show s'0) s'0
     h' = learn rule lr s' h
   in
     (h', s')
@@ -114,14 +116,16 @@ main = do
     rule = ojaRule 1
     lr = 0.1
     inputDim = 784
-    hiddenDim = 1024
+    hiddenDim = 1
     inputIds = getInputIds inputDim
     hiddenIds = getHiddenIds hiddenDim
 
     train :: [Maybe Datum]
           -> (Hopfield, State)
           -> Writer [String] (Hopfield, State)
-    train [] (h, s) = return (h, s)
+    train [] (h, s) = do
+      tell ["Trained Hopfield network: " ++ show h]
+      return (h, s)
     train (Nothing : ds) (h, s) = train ds (h, s)
     train (Just datum : ds) (h, s) = do
       let
@@ -136,4 +140,4 @@ main = do
   hopfield <- getInitHopfield inputIds hiddenIds
   mnist <- readMnist "mnist_test.csv"
   mapM_ putStrLn . snd . runWriter $
-    train (take 2 mnist) (hopfield, state)
+    train (take 10 mnist) (hopfield, state)
