@@ -8,6 +8,7 @@ module Hopfield
 , weight
 , connections
 , setWeight
+, updateWeight
 , weightNorm
 , energy
 , asynUpdate
@@ -19,10 +20,10 @@ module Hopfield
 ) where
 
 import qualified Data.Map.Lazy as Map
+import Data.List (foldl')
 import Index
 import Spin
 import State
-import Util (foldr')
 
 
 ------------ Constuction --------------
@@ -77,6 +78,11 @@ connections = Map.keys . weightMap
 setWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
 setWeight i j w = Hopfield . Map.adjust (const w) (i, j) . weightMap
 
+-- | Updates $W_ij$ by $\Delta W_ij$. If the position '(i, j)' is absent,
+-- | then returns the origin 'Hopfield'.
+updateWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
+updateWeight i j dW = Hopfield . Map.adjust (+ dW) (i, j) . weightMap
+
 
 ------------ Util Functions --------------
 
@@ -110,15 +116,15 @@ asynUpdate hopf indexList stat =
     activity x = if x >= 0 then 1 else -1
 
     -- | The update rule of Hopfield network for one index of the state
-    update :: Hopfield -> Index -> State -> State
-    update h i s = 
+    update :: Hopfield -> State -> Index -> State
+    update h s i = 
       let
         w = weight h
         a = sum [w i j * sj | (j, sj) <- toList s]
       in
         updateState i (activity a) s
 
-  in foldr' (update hopf) stat indexList
+  in foldl' (update hopf) stat indexList
 
 
 ------------ Learning --------------
@@ -131,6 +137,22 @@ asynUpdate hopf indexList stat =
   where, by symmetry, $f(w, x, y) \equiv f(w, y, x)$.
 -}
 type LearningRule = (Weight -> Spin -> Spin -> Weight)  -- f(w, x, y)
+
+
+{-
+  Within the general from of Hebbian learning rule, if the $x$'s components are
+  all binary, being either $-1$ or $1$, then the general form is restricted to be
+
+    $$ f(w, x, y) = f_0(w) + f_1(w) (x + y) + f_2(w) x y, $$
+
+  where $f_0$, $f_1$, and $f_2$ are arbitrary.
+-}
+binaryLearningRule :: (Weight -> Spin)  -- f_0(w)
+                   -> (Weight -> Spin)  -- f_1(w)
+                   -> (Weight -> Spin)  -- f_2(w)
+                   -> LearningRule  -- f(w, x, y)
+binaryLearningRule f0 f1 f2 =
+  \w x y -> (f0 w) + (f1 w) * (x + y) + (f2 w) * x * y
 
 
 {-
@@ -167,22 +189,19 @@ ojaRule r = \w x y -> r**2 * x * y - w
 type LearningRate = Double
 
 -- | Memorizes the state into the Hopfield network
-learn :: LearningRule -> LearningRate -> State -> Hopfield -> Hopfield
-learn rule eta stat hopf =
+learn :: LearningRule -> LearningRate -> [(Index, Spin)] -> Hopfield -> Hopfield
+learn rule eta indexSpinList hopf =
   let
     -- Add 'dW' to the weight at position '(i, j)'. If the position is absent,
     -- then returns the origin.
-    updateWeight :: Index -> Index -> Weight -> Hopfield -> Hopfield
-    updateWeight i j dW = Hopfield . Map.adjust (+ dW) (i, j) . weightMap
-
-    update' (i, j, dW) = updateWeight i j (eta * dW)
+    update' hopf (i, j, dW) = updateWeight i j (eta * dW) hopf
 
     dWij = do
-      (i, x) <- toList stat
-      (j, y) <- toList stat
+      (i, x) <- indexSpinList
+      (j, y) <- indexSpinList
       let
         w = weight hopf i j
         dW = if i == j then 0 else rule w x y
       return (i, j, dW)
   in
-    foldr' update' hopf dWij
+    foldl' update' hopf dWij

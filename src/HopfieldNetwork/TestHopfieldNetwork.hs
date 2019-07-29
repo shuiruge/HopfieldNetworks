@@ -17,7 +17,7 @@ getHopfield rule rate epochs states =
     learn' hopfield (st:sts) = do
       let
         norm = weightNorm 2 hopfield
-        newHopfield = learn rule rate st hopfield
+        newHopfield = learn rule rate (toList st) hopfield
       tell ["Norm of weight: " ++ show norm]
       learn' newHopfield sts
   in

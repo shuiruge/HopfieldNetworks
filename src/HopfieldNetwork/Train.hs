@@ -88,7 +88,7 @@ setInput d s =
     update (i, sp) = updateState i sp
     idxSpinList = [(index [0, i], toSpin x) | (i, x) <- enum (input d)]
   in
-    foldr' update s idxSpinList
+    foldl' update s idxSpinList
   
 
 iterate_ :: Step  -- max step in relaxing
