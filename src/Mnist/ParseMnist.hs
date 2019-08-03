@@ -1,4 +1,4 @@
-module ParseMnist
+module Mnist.ParseMnist
 ( Input
 , Target
 , Datum (..)

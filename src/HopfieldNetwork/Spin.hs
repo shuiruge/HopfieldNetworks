@@ -1,4 +1,4 @@
-module Spin (Spin, spin) where
+module HopfieldNetwork.Spin (Spin, spin) where
 
 type Spin = Double
 

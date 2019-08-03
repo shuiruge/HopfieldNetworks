@@ -1,4 +1,4 @@
-module Hopfield
+module HopfieldNetwork.Hopfield
 ( Weight
 , Hopfield
 , weightMap
@@ -21,9 +21,9 @@ module Hopfield
 
 import qualified Data.Map.Lazy as Map
 import Data.List (foldl')
-import Index
-import Spin
-import State
+import HopfieldNetwork.Index
+import HopfieldNetwork.Spin
+import HopfieldNetwork.State
 
 
 ------------ Constuction --------------

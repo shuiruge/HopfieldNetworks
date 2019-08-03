@@ -1,4 +1,4 @@
-module Util
+module HopfieldNetwork.Util
 ( shuffle
 , foldr'
 , foldM'

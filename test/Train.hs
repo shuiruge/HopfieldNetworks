@@ -1,9 +1,9 @@
-import Index
-import Spin
-import State
-import Hopfield
-import ParseMnist
-import Util (foldr', foldM')
+import HopfieldNetwork.Index
+import HopfieldNetwork.Spin
+import HopfieldNetwork.State
+import HopfieldNetwork.Hopfield
+import HopfieldNetwork.Util (foldr', foldM')
+import Mnist.ParseMnist
 import Control.Monad.Writer
 import System.Random
 import Debug.Trace

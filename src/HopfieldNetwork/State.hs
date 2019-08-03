@@ -1,6 +1,5 @@
-module State
+module HopfieldNetwork.State
 ( State
-, getSpin
 , indices
 , spins
 , state
@@ -11,8 +10,8 @@ module State
 
 import qualified Data.Map.Lazy as Map
 import Data.List (foldl')
-import Index
-import Spin
+import HopfieldNetwork.Index
+import HopfieldNetwork.Spin
 
 newtype State = State { indexSpinMap :: Map.Map Index Spin } deriving Eq
 

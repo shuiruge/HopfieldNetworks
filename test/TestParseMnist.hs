@@ -1,4 +1,4 @@
-import ParseMnist
+import Mnist.ParseMnist
 
 
 main :: IO ()
